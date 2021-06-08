@@ -32,8 +32,10 @@ def show(imdict):
         if len(data.shape) == 1:
             plt.plot(data)
         else:
-            img = cv.cvtColor(data, cv.COLOR_BGR2RGB)
-            plt.imshow(img, 'gray')
+            if len(data.shape) == 3:
+                data = cv.cvtColor(data, cv.COLOR_BGR2RGB)
+            cmap = ['gray', 'jet']['jet' in title]
+            plt.imshow(data, cmap)
         plt.title(title)
         plt.xticks([]), plt.yticks([])
     plt.show()
