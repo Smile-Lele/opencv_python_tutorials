@@ -1,11 +1,19 @@
 import numpy as np
 import cv2 as cv
-from matplotlib import pyplot as plt
+from mypackage.multiplot import multiplot as mplt
 
-img = cv.imread('../mydata/messi5.jpg', 0)
+imdict = dict()
+img = cv.imread('../mydata/messi5.jpg', cv.IMREAD_COLOR)
+assert img is not None, 'img should be not empty'
+imdict['imdict'] = img
+
+denoise_img = cv.fastNlMeansDenoisingColored(img, None, 5, 7, 21)
+imdict['denoise_im'] = denoise_img
+
+gauss = cv.GaussianBlur(denoise_img, (5, 5), 0)
+imdict['gauss'] = gauss
+
 edges = cv.Canny(img, 100, 200, L2gradient=True)
-plt.subplot(121), plt.imshow(img, cmap='gray')
-plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-plt.subplot(122), plt.imshow(edges, cmap='gray')
-plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
-plt.show()
+imdict['edges'] = edges
+
+mplt.show(imdict)
