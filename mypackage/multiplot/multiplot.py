@@ -34,6 +34,7 @@ def show(imdict):
         else:
             if len(data.shape) == 3:
                 data = cv.cvtColor(data, cv.COLOR_BGR2RGB)
+
             cmap = ['gray', 'jet']['jet' in title]
             plt.imshow(data, cmap)
         plt.title(title)
