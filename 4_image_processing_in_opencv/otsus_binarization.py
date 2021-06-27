@@ -36,7 +36,7 @@ def main():
     plt.show()
 
 
-def otsu_bin():
+def otsu_threshold():
     filename = os.path.join('../mydata', 'noisy2.png')
     img = cv.imread(filename, 0)
     blur = cv.GaussianBlur(img, (5, 5), 0)
@@ -53,11 +53,13 @@ def otsu_bin():
         if q1 < 1.e-6 or q2 < 1.e-6:
             continue
         b1, b2 = np.hsplit(bins, [i])  # weights
+
         # finding means and variances
         m1, m2 = np.sum(p1 * b1) / q1, np.sum(p2 * b2) / q2
         v1, v2 = np.sum(((b1 - m1) ** 2) * p1) / q1, np.sum(((b2 - m2) ** 2) * p2) / q2
         # calculates the minimization function
         fn = v1 * q1 + v2 * q2
+
         if fn < fn_min:
             fn_min = fn
             thresh = i
@@ -68,4 +70,4 @@ def otsu_bin():
 
 if __name__ == '__main__':
     # main()
-    otsu_bin()
+    otsu_threshold()
