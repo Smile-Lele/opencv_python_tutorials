@@ -12,11 +12,10 @@ def otsu_threshold(img, min_thre=0, max_thre=255):
     img[img < min_thre] = min_thre
     img[img > max_thre] = max_thre
 
-    print(img.shape, img.dtype)
-    thresh, th_img = cv.threshold(img, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
+    thre, thre_img = cv.threshold(img, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
 
-    print(f'otsu thre:{thresh}')
-    return thresh, th_img
+    print(f'otsu thre:{thre}')
+    return thre, thre_img
 
 
 def detect_edge_with_dft(img, radius):
@@ -65,9 +64,9 @@ if __name__ == '__main__':
     img = cv.fastNlMeansDenoising(img, None, 5, 7, 21)
     imdict['img'] = img
 
-    # img_back = detect_edge_with_dft(img, 80)
-    # imdict['img_back'] = img_back
-    #
+    img_back = detect_edge_with_dft(img, 80)
+    imdict['img_back'] = img_back
+
     # _, img_th = otsu_threshold(img_back)
     # imdict['img_th'] = img_th
     #
@@ -75,10 +74,10 @@ if __name__ == '__main__':
     # dilate_img = cv.dilate(img_th, kernel=kernel, iterations=2)
     # imdict['dilate'] = dilate_img
 
-    img = cv.GaussianBlur(img, (5, 5), 0)
+    # img = cv.GaussianBlur(img, (5, 5), 0)
 
-    sobelX = cv.Sobel(img, cv.CV_64F, 1, 0)
-    sobelY = cv.Sobel(img, cv.CV_64F, 0, 1)
+    sobelX = cv.Sobel(img_back, cv.CV_64F, 1, 0)
+    sobelY = cv.Sobel(img_back, cv.CV_64F, 0, 1)
 
     sobelX = np.uint8(np.absolute(sobelX))
     sobelY = np.uint8(np.absolute(sobelY))
@@ -86,15 +85,22 @@ if __name__ == '__main__':
     _, sobelX = otsu_threshold(sobelX)
     _, sobelY = otsu_threshold(sobelY)
 
-    sobel_ = sobelX + sobelY
+    sobel_ = cv.bitwise_or(sobelX, sobelY)
 
     imdict['sobelX'] = sobelX
     imdict['sobelY'] = sobelY
     imdict['sobel_'] = sobel_
 
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-    dilate_img = cv.morphologyEx(sobel_, cv.MORPH_DILATE, kernel=kernel, iterations=5)
-    dilate_img = cv.morphologyEx(dilate_img, cv.MORPH_CLOSE, kernel=kernel, iterations=5)
+    dilate_img = cv.morphologyEx(sobel_, cv.MORPH_DILATE, kernel=kernel, iterations=2)
+    dilate_img = cv.morphologyEx(dilate_img, cv.MORPH_CLOSE, kernel=kernel, iterations=2)
     imdict['dilate'] = dilate_img
+
+    cnts, hier = cv.findContours(dilate_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cnt = cnts[0]
+    epsilon = 0.1 * cv.arcLength(cnt, True)
+    approx = cv.approxPolyDP(cnt, epsilon, True)
+    print(approx.squeeze().tolist())
+    assert len(approx) == 4, 'approx res should be 4'
 
     mplt.show(imdict)

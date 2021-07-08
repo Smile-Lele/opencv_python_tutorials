@@ -47,7 +47,6 @@ plt.vlines(x=peaks, ymin=hist[peaks] - properties["prominences"], ymax=hist[peak
 plt.hlines(y=properties["width_heights"], xmin=properties["left_ips"], xmax=properties["right_ips"], color="C1")
 plt.show()
 
-
 # find rectangle
 binRecImg = img.copy()
 binRecImg[binRecImg <= MAX_GRAYSCALE] = MAX_GRAYSCALE
