@@ -1,4 +1,5 @@
 # coding: utf-8
+import time
 
 import cv2 as cv
 import numpy as np
@@ -75,15 +76,20 @@ if __name__ == '__main__':
     # imdict['dilate'] = dilate_img
 
     # img = cv.GaussianBlur(img, (5, 5), 0)
+    canny = cv.Canny(img_back, 180, 250)
+    imdict['canny'] = canny
 
+    # cv.CV_64F is order to avoid negative num
     sobelX = cv.Sobel(img_back, cv.CV_64F, 1, 0)
     sobelY = cv.Sobel(img_back, cv.CV_64F, 0, 1)
 
-    sobelX = np.uint8(np.absolute(sobelX))
-    sobelY = np.uint8(np.absolute(sobelY))
+    sobelX = cv.convertScaleAbs(sobelX)  # np.uint8(np.absolute(sobelX))
+    sobelY = cv.convertScaleAbs(sobelY)  # np.uint8(np.absolute(sobelY))
 
+    start_t = time.time()
     _, sobelX = otsu_threshold(sobelX)
     _, sobelY = otsu_threshold(sobelY)
+    print(time.time() - start_t)
 
     sobel_ = cv.bitwise_or(sobelX, sobelY)
 

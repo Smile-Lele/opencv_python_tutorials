@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 def show(imdict):
     """
     This is an adaptive drawing module
-    :param imgsdict:
+    :param imdict:
     :return:
     """
     if not isinstance(imdict, dict):
@@ -29,10 +29,10 @@ def show(imdict):
 
         plt.subplot(row, math.ceil(img_num / row), index + 1)
 
-        if len(data.shape) == 1:
+        if data.ndim == 1:
             plt.plot(data)
         else:
-            if len(data.shape) == 3:
+            if data.ndim == 3:
                 data = cv.cvtColor(data, cv.COLOR_BGR2RGB)
 
             cmap = ['gray', 'jet']['jet' in title]

@@ -1,7 +1,9 @@
+import glob
 import os
 import time
 import zipfile
 from concurrent import futures
+import multiprocessing
 
 import tqdm
 
@@ -29,12 +31,20 @@ def decompress(filepath, destpath, pwd=b'heygears008'):
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     start_time = time.time()
-    file_path = 'D:/MyData/Model/'
-    file_name = '05-jituo.ultm'
-    dest_path = file_path + '/File/'
-    if not os.path.exists(dest_path):
-        os.mkdir(dest_path)
+    file_path = os.getcwd()
 
-    decompress(os.path.join(file_path, file_name), dest_path)
+    ultm_files = glob.glob(os.path.join(file_path, '*.ultm'))
+    if not ultm_files:
+        raise FileNotFoundError("Error: *.ultm cannot be found...")
+
+    for ultm_file in ultm_files:
+        file_name = os.path.split(ultm_file)[-1]  # to get file name, such as 'shuwen-4K-5X.ultm'
+        file_folder = file_name.replace(".ultm", "")
+        dest_path = os.path.join(file_path, file_folder)
+        if not os.path.exists(dest_path):
+            os.mkdir(dest_path)
+
+        decompress(os.path.join(file_path, file_name), dest_path)
     print(time.time() - start_time)

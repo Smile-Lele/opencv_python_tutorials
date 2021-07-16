@@ -3,21 +3,35 @@ import os
 
 import cv2 as cv
 import numpy as np
+from mypackage.multiplot import multiplot as mplt
+
+
+
+def otsu_threshold(img, min_thre=0, max_thre=255):
+    img = cv.GaussianBlur(img, (5, 5), 0)
+
+    img[img < min_thre] = min_thre
+    img[img > max_thre] = max_thre
+
+    thre, thre_img = cv.threshold(img, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
+
+    print(f'otsu thre:{thre}')
+    return thre, thre_img
 
 
 def main():
     img_dicts = dict()
 
-    img_path = '/Users/smile/Desktop/'
-    img_name = '2.png'
+    img_path = '../mydata/drop_2.png'
 
-    src_img = cv.imread(os.path.join(img_path, img_name))
+    src_img = cv.imread(img_path)
     if src_img is None or len(src_img) == 0:
         print('no image was found')
         exit(0)
 
     height, width = src_img.shape[:2]
     gray_img = cv.cvtColor(src_img, cv.COLOR_BGR2GRAY)
+    gray_img = cv.GaussianBlur(gray_img, (5, 5), 0)
     img_dicts['gray_img'] = gray_img
 
     retval, labels, stats, _ = cv.connectedComponentsWithStatsWithAlgorithm(gray_img, connectivity=8,
@@ -34,10 +48,11 @@ def main():
     mask = labels == max_area_label
     mask = ~mask
     masked_img[mask] = 255
-    masked_img = cv.dilate(masked_img, (17, 17), iterations=10)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+    masked_img = cv.morphologyEx(masked_img, cv.MORPH_OPEN, kernel, iterations=1)
     img_dicts['masked_img'] = masked_img
 
-    or_mask_gray = cv.bitwise_or(masked_img, gray_img)
+    or_mask_gray = gray_img
     img_dicts['or_mask_gray'] = or_mask_gray
 
     # show_imgs(img_dicts)
@@ -60,38 +75,46 @@ def main():
     #     x1, y1, x2, y2 = line[0]
     #     cv.line(src_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    lapla = cv.Laplacian(or_mask_gray, cv.CV_64F, ksize=3)
-    lapla = np.uint8(np.absolute(lapla))
+    # lapla = cv.Laplacian(or_mask_gray, cv.CV_64F, ksize=3)
+    # lapla = np.uint8(np.absolute(lapla))
     # img_dicts['lapla'] = lapla
 
     sobelX = cv.Sobel(or_mask_gray, cv.CV_64F, 1, 0)
     sobelY = cv.Sobel(or_mask_gray, cv.CV_64F, 0, 1)
 
-    sobelX = np.uint8(np.absolute(sobelX))
-    sobelY = np.uint8(np.absolute(sobelY))
+    sobelX = cv.convertScaleAbs(sobelX)
+    sobelY = cv.convertScaleAbs(sobelY)
 
-    # img_dicts['sobelX'] = sobelX
-    # img_dicts['sobelY'] = sobelY
-    # show_imgs(img_dicts)
 
-    edges = cv.Canny(sobelY, 0, 255, apertureSize=3)
+    _, otsu_x = otsu_threshold(sobelX)
+    _, otsu_y = otsu_threshold(sobelY)
+
+    sobel = cv.add(otsu_x, otsu_y)
+    sobel_morp = cv.morphologyEx(sobel, cv.MORPH_CLOSE, kernel, iterations=1)
+
+
+    img_dicts['sobelX'] = otsu_x
+    img_dicts['sobelY'] = otsu_y
+    img_dicts['sobel'] = sobel_morp
+
+
+    edges = cv.Canny(sobel_morp, 0, 255, apertureSize=3)
     img_dicts['edges'] = edges
-    # show_imgs(img_dicts)
 
 
-    print(height, width)
-    lines = cv.HoughLinesP(edges, 1, np.pi / 180, 200, minLineLength=(width//2), maxLineGap=100)
-
-    if lines is None:
-        print('no line can be found')
-        exit()
-
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        cv.line(src_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    # print(height, width)
+    # lines = cv.HoughLinesP(edges, 1, np.pi / 180, 200, minLineLength=(width//2), maxLineGap=100)
+    #
+    # if lines is None:
+    #     print('no line can be found')
+    #     exit()
+    #
+    # for line in lines:
+    #     x1, y1, x2, y2 = line[0]
+    #     cv.line(src_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
     img_dicts['src_img'] = src_img
-    show_imgs(img_dicts)
+    mplt.show(img_dicts)
 
 
 if __name__ == '__main__':
