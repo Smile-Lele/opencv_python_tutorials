@@ -10,7 +10,7 @@ pre_frame_gray = cv.cvtColor(pre_frame, cv.COLOR_BGR2GRAY)
 prevPts = cv.goodFeaturesToTrack(pre_frame_gray, maxCorners=100, qualityLevel=0.3, minDistance=30)
 
 mask = np.zeros_like(pre_frame)
-colors = np.random.randint(0, 255, size=(100, 3)).tolist()
+COLORS = np.random.randint(0, 255, size=(100, 3)).tolist()
 
 while True:
     ret, frame = cap.read()
@@ -25,7 +25,7 @@ while True:
     valid_curPts = curPts[status == 1]
 
     for i, (pre, cur) in enumerate(zip(valid_prevPts, valid_curPts)):
-        color = random.choice(colors)
+        color = random.choice(COLORS)
         mask = cv.line(mask, np.uint(pre.tolist()), np.uint(cur.tolist()), color, 2)
         frame = cv.circle(frame, np.int16(pre.tolist()), 5, color, -1)
 

@@ -1,6 +1,10 @@
 # coding: utf-8
 
 import cv2 as cv
+import numpy as np
+
+COLORS = np.random.randint(0, 255, size=(100, 3)).tolist()
+
 
 # load the path of images
 cv.samples.addSamplesDataSearchPath('../mydata')

@@ -38,45 +38,51 @@ def img_to_mat(img, mshape):
     return mat
 
 
-def mat_to_img(mat, dsize):
+def resize_ex(src: (np.uint8, np.float32), dsize):
     """
-    The function is to convert matrix to image, the grayscale per pixel is
-    from the value of matrix corresponding to the region. To be specific,
-    each pixel in a region has same grayscale.
-    :param mat: matrix needed to be convert
-    :param dsize: image shape (row, col)
-    :return: image(row, col)
+    This is a extension of resize
+    TODO: need to be verified
+    :param src:
+    :param dsize:
+    :return:
     """
-    img = np.zeros(dsize, dtype=np.uint8)
-    print(f'mat:({mat.shape},{mat.dtype}) -> src:({img.shape},{img.dtype})')
-
-    # TODO: whether scale up or down has diff strategies of interpolation
-    img = cv.resize(mat, (dsize[1], dsize[0]), interpolation=cv.INTER_CUBIC)
-    return img
+    print(f'resize: \nsrc{src.shape} -> dst:{dsize}')
+    inter_type = [cv.INTER_CUBIC, cv.INTER_AREA][src.size > np.cumprod(dsize).max()]
+    dst = cv.resize(src, tuple(reversed(dsize)), interpolation=inter_type)
+    return dst
 
 
-def scale_mat(mat):
+def gen_mask(src):
     """
-    The function is to scale up and down source matrix to maximum grayscale 250
-    :param mat: input matrix
-    :return: matrix processed
+    :param src:
+    :return:
     """
-    scale = 250 / mat.max()
-    new_mat = np.round(np.multiply(mat, scale, dtype=np.float16)).astype(dtype=np.uint8)
-    return new_mat
+    # create mask
+    mask = np.zeros(src.shape, dtype=np.float16)
+    mask.fill(255)
+
+    min_gray = np.min(src)
+    scales = np.divide(src, min_gray)
+    mask = np.round(np.divide(mask, scales)).astype(dtype=np.uint8)
+    return mask
 
 
-def masking(src:np.uint8, mask:np.uint8):
+def masking(src: np.uint8, mask: np.uint8):
     """
     TODO: write description
     :param mask:
     :param src:
     :return:
     """
-    scale = np.divide(mask, 255)
-    image = np.round(np.multiply(src, scale, dtype=np.float16)).astype(dtype=np.uint8)
-    image = scale_mat(image)
+    scales = np.divide(mask, 255)
+    image = np.round(np.multiply(src, scales, dtype=np.float16)).astype(dtype=np.uint8)
+    image = scaleAbs_ex(image, 255)
     return image
+
+
+def scaleAbs_ex(src, maxVal):
+    dst = cv.convertScaleAbs(src, alpha=maxVal / src.max())
+    return dst
 
 
 def evaluating(mat):
