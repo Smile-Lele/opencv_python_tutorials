@@ -108,8 +108,8 @@ if __name__ == '__main__':
     )
     print(f'train_loader batch:{len(train_loader)}')
 
-    print(test_data.data.size())
-    print(test_data.targets.size())
+    print(train_data.data.size())
+    print(train_data.targets.size())
 
     # plt.imshow(train_data.data[0].numpy(), cmap='gray')
     # plt.title(f'{train_data.targets[0]}')

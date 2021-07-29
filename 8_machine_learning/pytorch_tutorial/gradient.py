@@ -10,7 +10,7 @@ from mypackage.multiplot import multiplot as mplt
 
 
 
-# gradient
+# 1. gradient
 x = torch.ones(1)
 w = torch.full([1], 2.0, requires_grad=True)
 print(w)
@@ -19,7 +19,7 @@ print(mse)
 grad_ = torch.autograd.grad(mse, [w])
 print(grad_)
 
-# backward
+# 2. backward
 mse = F.mse_loss(torch.ones(1), x*w)
 mse.backward()
 print(w.grad)

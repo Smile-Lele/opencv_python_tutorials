@@ -4,7 +4,9 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.idea" />
       <excludeFolder url="file://$MODULE_DIR$/books" />
+      <excludeFolder url="file://$MODULE_DIR$/materials" />
       <excludeFolder url="file://$MODULE_DIR$/mydata" />
+      <excludeFolder url="file://$MODULE_DIR$/papers" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (torch_project)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
