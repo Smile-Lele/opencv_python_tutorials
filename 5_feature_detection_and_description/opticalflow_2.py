@@ -3,7 +3,7 @@ import cv2 as cv
 
 
 cv.samples.addSamplesDataSearchPath('../mydata')
-cap = cv.VideoCapture(cv.samples.findFile('vtest.avi'))
+cap = cv.VideoCapture(cv.samples.findFile('output.avi'))
 ret, frame1 = cap.read()
 prvs = cv.cvtColor(frame1, cv.COLOR_BGR2GRAY)
 hsv = np.zeros_like(frame1)

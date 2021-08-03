@@ -11,13 +11,13 @@ def extract_items(grayImg: np.uint8, minarea: int):
     :param minarea: minimum area of circle
     """
     print(f'grayImg:\n\tshape:{grayImg.shape},ndim:{grayImg.ndim},dtype:{grayImg.dtype}')
-    retval, labels, stats, centroids = cv.connectedComponentsWithStatsWithAlgorithm(grayImg, 8, cv.CV_16U, cv.CCL_GRANA)
+    retval, labels, stats, centroids = cv.connectedComponentsWithStatsWithAlgorithm(grayImg, 8, cv.CV_32S, cv.CCL_BBDT)
     print(f'items except background:{retval - 1}')
-    sorted_index = sorted(list(range(1, retval)), key=lambda x: stats[x][-1], reverse=True)
+    sorted_index = sorted(list(range(1, retval)), key=lambda x: stats[x, cv.CC_STAT_AREA], reverse=True)
     canvas = np.zeros(grayImg.shape, dtype=grayImg.dtype)
 
     for i in sorted_index:
-        area = stats[i][-1]
+        area = stats[i, cv.CC_STAT_AREA]
         if area < minarea:
             continue
 
@@ -25,13 +25,13 @@ def extract_items(grayImg: np.uint8, minarea: int):
 
         # TODO: do something
         cv.imshow('', canvas)
-        cv.waitKey(300)
+        cv.waitKey(3000)
 
         canvas.fill(0)
 
 
 if __name__ == '__main__':
-    img = cv.imread('../mydata/slice.png', cv.IMREAD_GRAYSCALE)
+    img = cv.imread('S000163_P1.png', cv.IMREAD_GRAYSCALE)
     start_t = time.time()
     extract_items(img, 0)
     print(time.time() - start_t)

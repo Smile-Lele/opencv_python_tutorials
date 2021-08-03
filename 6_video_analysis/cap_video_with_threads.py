@@ -42,7 +42,9 @@ def write_video(cap, images, despath):
 
 def process_frame(index, image):
     # image = cv.fastNlMeansDenoising(image, None, 5, 7, 21)
-    image = cv.GaussianBlur(image, (5, 5), 0)
+    image = cv.edgePreservingFilter(image, sigma_s=50, sigma_r=0.4, flags=cv.RECURS_FILTER)
+
+    # image = cv.GaussianBlur(image, (5, 5), 0)
     return index, image
 
 

@@ -41,7 +41,7 @@ def main():
 
     # load the path of images
     cv.samples.addSamplesDataSearchPath('../mydata')
-    file = cv.samples.findFile('drops.avi')
+    file = cv.samples.findFile('output.avi')
     if not file:
         raise FileNotFoundError('file not found')
 

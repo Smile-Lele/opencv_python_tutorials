@@ -5,6 +5,14 @@ __pycache__/
 .idea/
 .vscode/
 
+# yolo3 dataset and weigth file
+yolo3_pytorch/VOCdevkit/VOC2007/Annotations/
+yolo3_pytorch/VOCdevkit/VOC2007/ImageSets/
+yolo3_pytorch/VOCdevkit/VOC2007/JPEGImages/
+yolo3_pytorch/logs/
+books/*
+*.pth
+
 # C extensions
 *.so
 

@@ -6,8 +6,7 @@ import cv2 as cv
 import numpy as np
 from mypackage.multiplot import multiplot as mplt
 
-COLORS = [(48, 48, 255), (0, 165, 255), (0, 255, 0),
-          (255, 255, 0), (147, 20, 255), (144, 238, 144)]
+COLORS = np.random.randint(0, 255, size=(100, 3)).tolist()
 
 
 def otsu_threshold(img, min_thre=0, max_thre=255):
@@ -39,17 +38,26 @@ def transform(src_img):
     sobelX = cv.Sobel(img, cv.CV_64F, 1, 0)
     sobelY = cv.Sobel(img, cv.CV_64F, 0, 1)
 
-    sobelX = np.uint8(np.absolute(sobelX))
-    sobelY = np.uint8(np.absolute(sobelY))
-
-    _, sobelX = otsu_threshold(sobelX)
-    _, sobelY = otsu_threshold(sobelY)
-
-    sobel_ = cv.bitwise_or(sobelX, sobelY)
+    sobelX = cv.convertScaleAbs(sobelX)  # np.uint8(np.absolute(sobelX))
+    sobelY = cv.convertScaleAbs(sobelY)  # np.uint8(np.absolute(sobelY))
 
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-    dilate_img = cv.morphologyEx(sobel_, cv.MORPH_DILATE, kernel=kernel, iterations=2)
-    dilate_img = cv.morphologyEx(dilate_img, cv.MORPH_CLOSE, kernel=kernel, iterations=2)
+
+    _, sobelX = otsu_threshold(sobelX)
+    thin_sobelX = cv.morphologyEx(sobelX, cv.MORPH_HITMISS, kernel=kernel, iterations=1)
+    thin_sobelX = cv.bitwise_and(sobelX, cv.bitwise_not(thin_sobelX))
+
+    _, sobelY = otsu_threshold(sobelY)
+    thin_sobelY = cv.morphologyEx(sobelY, cv.MORPH_HITMISS, kernel=kernel, iterations=1)
+    thin_sobelY = cv.bitwise_and(sobelY, cv.bitwise_not(thin_sobelY))
+
+    imdict['thin_sobelX'] = thin_sobelX
+    imdict['thin_sobelY'] = thin_sobelY
+
+    sobel_ = cv.bitwise_or(thin_sobelX, thin_sobelY)
+    imdict['sobel_'] = sobel_
+
+    dilate_img = cv.morphologyEx(sobel_, cv.MORPH_DILATE, kernel=kernel, iterations=1)
     imdict['dilate'] = dilate_img
 
     # find external contour
@@ -88,7 +96,7 @@ def transform(src_img):
     roi_param_dict['y'] = round(min_rect_center_y - min_rect_h / 2)
     roi_param_dict['w'] = round(min_rect_w)
     roi_param_dict['h'] = round(min_rect_h)
-    print(roi_param_dict)
+    print(f'write ROI:{roi_param_dict}')
 
     # convert minRect to boxPoints
     box_cors = np.int0(cv.boxPoints(minRect))
@@ -134,5 +142,6 @@ def transform(src_img):
     translated_im = cv.warpAffine(rotated_im, translation_matrix, (col, row), cv.BORDER_TRANSPARENT)
     # imdict['translated_im'] = translated_im
 
-    mplt.show(imdict)
+    # mplot.show(imdict)
+
     return rotated_im
