@@ -17,13 +17,15 @@ def write_file(data, file, header=None, sortby=None, ascend=None):
     df = pd.DataFrame(data)
 
     # complete header and set header for dataframe
-    noheader_cols = df.shape[1] - len(header)
-    complete_header = ['P' + str(i) for i in range(1, noheader_cols + 1)]
-    header += complete_header
-    df.columns = header
+    if header:
+        noheader_cols = df.shape[1] - len(header)
+        complete_header = ['P' + str(i) for i in range(1, noheader_cols + 1)]
+        header += complete_header
+        df.columns = header
 
     # sort dataframe
-    df = df.sort_values(by=sortby, ascending=ascend)
+    if sortby:
+        df = df.sort_values(by=sortby, ascending=ascend)
 
     # select the type of saved file
     if '.csv' in file:

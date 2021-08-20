@@ -31,14 +31,19 @@ def draw():
 
 
 if __name__ == '__main__':
-    # draw()
-    x = torch.randn(1, 2, requires_grad=True)
-    # x.requires_grad_()
-    torch.nn.init.kaiming_normal_(x)
+    draw()
+    x = torch.rand(1, 2)
+    print(x)
+    epsilon = 6
+    x = torch.multiply(x, 2* epsilon) - epsilon
+    x.requires_grad_()
+    # torch.nn.init.kaiming_uniform_(x)
     print(x)
 
-    optimizer = torch.optim.Adam([x], lr=1e-3)
-    for step in range(20000):
+    LR = 1e-3
+    optimizer = torch.optim.Adam([x], lr=LR)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', verbose=True)
+    for step in range(50000):
 
         pred = himmelblau(x.squeeze())
 
@@ -48,5 +53,9 @@ if __name__ == '__main__':
 
         if step % 2000 == 0:
             print('step {}:x={},f(x)={}'.format(step, [x], pred.item()))
+            scheduler.step(pred.item())
+            if pred.item() == 0:
+                break
+
 
 

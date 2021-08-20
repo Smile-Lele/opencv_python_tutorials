@@ -129,6 +129,7 @@ if __name__ == '__main__':
     plt.show()
 
     cnn = CNN().to(DEVICE)
+    print(cnn)
     optimizer = torch.optim.Adam(cnn.parameters(), lr=LR)
     for epoch in range(EPOCHS):
         train_model(cnn, DEVICE, train_loader, optimizer, epoch)
