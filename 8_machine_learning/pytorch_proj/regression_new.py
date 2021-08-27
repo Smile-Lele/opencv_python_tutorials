@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import numpy as np
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
@@ -9,17 +10,25 @@ class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
         self.net = nn.Sequential(
-            nn.Linear(1, 10),
+            nn.Linear(1, 50),
             nn.LeakyReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(50, 50),
             nn.LeakyReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(50, 50),
             nn.LeakyReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(50, 50),
             nn.LeakyReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(50, 50),
             nn.LeakyReLU(),
-            nn.Linear(10, 1)
+            nn.Linear(50, 50),
+            nn.LeakyReLU(),
+            nn.Linear(50, 50),
+            nn.LeakyReLU(),
+            nn.Linear(50, 50),
+            nn.LeakyReLU(),
+            nn.Linear(50, 50),
+            nn.LeakyReLU(),
+            nn.Linear(50, 1)
         )
 
     def forward(self, x):
@@ -27,17 +36,23 @@ class Model(nn.Module):
 
 
 if __name__ == '__main__':
-    x = torch.unsqueeze(torch.linspace(-3, 3, 250), dim=1)  # torch requires 2 dim
-    y = x.pow(2) + 0.8 * torch.rand(x.size())
-    print(x)
+    # x = torch.unsqueeze(torch.linspace(-20, 20, 100), dim=1)  # torch requires 2 dim
+    # print(x.shape, x.size())
+    # y = x.pow(2) + 0.8 * torch.rand(x.size())
+
+    x = torch.squeeze(torch.normal(2, 3, size=(1, 2000)), dim=1).T
+    x, _ = torch.sort(x, 0)
+    sigma, mean = torch.std_mean(x)
+    y = torch.exp(-1 * ((x - mean) ** 2) / (2 * (sigma ** 2))) / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)
+
     model = Model()
 
     plt.ion()
     plt.show()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=0.05)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-6)
     loss_func = torch.nn.MSELoss()
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
     for t in range(10000):
         pred = model(x)

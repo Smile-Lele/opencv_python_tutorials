@@ -16,7 +16,7 @@ COLORS = [(48, 48, 255),
           (147, 20, 255),
           (144, 238, 144)]
 
-src_img = cv.imread('../mydata/calibration.jpg')
+src_img = cv.imread('../mydata/calib_2.bmp')
 src_img = cv.resize(src_img, None, fx=2, fy=2, interpolation=cv.INTER_CUBIC)
 img = cv.cvtColor(src_img, cv.COLOR_BGR2GRAY)
 img = cv.fastNlMeansDenoising(img, None, 5, 7, 21)
@@ -49,13 +49,13 @@ plt.show()
 
 # find rectangle
 binRecImg = img.copy()
-binRecImg[binRecImg <= MAX_GRAYSCALE] = MAX_GRAYSCALE
+binRecImg[binRecImg <= MAX_GRAYSCALE - 30] = MAX_GRAYSCALE
 _, binRecImg = cv.threshold(binRecImg, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
 # im_dict['binRecImg'] = binRecImg
 
 # find circle
 binCirImg = img.copy()
-binCirImg[binCirImg >= MAX_GRAYSCALE] = MAX_GRAYSCALE
+binCirImg[binCirImg >= MAX_GRAYSCALE + 30] = MAX_GRAYSCALE
 _, binCirImg = cv.threshold(binCirImg, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU)
 # im_dict['binCirImg'] = binCirImg
 

@@ -1,7 +1,7 @@
 # coding: utf-8
 
-import numpy as np
 import cv2 as cv
+import numpy as np
 
 
 def img_to_mat(img, mshape):
@@ -12,29 +12,21 @@ def img_to_mat(img, mshape):
     :param mshape: it is a tuple (row, col)
     :return: matrix(row, col)
     """
+    if len(img.shape) == 3 and img.shape[2] == 3:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
     imrows, imcols = img.shape[:2]
     matrows, matcols = mshape
-
-    mat = np.zeros(mshape, dtype=img.dtype)
-
-    print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
-
-
     r_step = imrows // matrows
     c_step = imcols // matcols
+    ceil_counter = np.ones((imrows, imcols))
+    ceil_add = np.add.reduceat(np.add.reduceat(img, np.arange(0, img.shape[0], r_step), axis=0),
+                               np.arange(0, img.shape[1], c_step), axis=1)
+    ceil_nums = np.add.reduceat(np.add.reduceat(ceil_counter, np.arange(0, ceil_counter.shape[0], r_step), axis=0),
+                                np.arange(0, ceil_counter.shape[1], c_step), axis=1)
+    mat = np.divide(ceil_add, ceil_nums).astype(np.uint8)
 
-    for r in range(matrows):
-        r_start = int(r * r_step)
-        r_end = r_start + r_step
-        r_end = [r_end, imrows][r_end > imrows]
-
-        for c in range(matcols):
-            c_start = int(c * c_step)
-            c_end = c_start + c_step
-            c_end = [c_end, imcols][c_end > imcols]
-
-            _avg = img[r_start:r_end, c_start:c_end]
-            mat[r][c] = np.average(_avg)
+    print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
     return mat
 
 

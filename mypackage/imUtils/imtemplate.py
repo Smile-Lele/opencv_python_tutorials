@@ -15,15 +15,14 @@ def create_chessboard(mshape, pixels):
     rows, cols = mshape
     height = (2 * rows - 1) * pixels
     width = (2 * cols - 1) * pixels
-    img = np.zeros((width, height), np.uint8)
-    img.fill(255)
-    for r in range(rows):
-        for c in range(cols):
-            cv.rectangle(img, (2 * r * pixels, 2 * c * pixels),
-                         ((2 * r + 1) * pixels, (2 * c + 1) * pixels), 0, -1)
+    img = np.zeros((rows, cols), np.uint8)
 
-            cv.rectangle(img, ((2 * r + 1) * pixels, (2 * c + 1) * pixels),
-                         ((2 * r + 2) * pixels, (2 * c + 2) * pixels), 0, -1)
+    # base_ = np.array([[0, 1], [1, 0]])
+    # img = np.tile(base_, (4, 4))
+
+    img[1::2, ::2] = 255
+    img[::2, 1::2] = 255
+    img = cv.resize(img, (width, height), interpolation=cv.INTER_AREA)
     info = 'chessboard: \nmshape:{} \npixels:{}\n'
     info = info.format(mshape, pixels)
     print(info)
@@ -83,5 +82,11 @@ def create_whiteboard(dsize):
     return canvas
 
 
-
-
+def draw_gradient(dsize, gap: int):
+    grad_v_mat, grad_h_mat = np.mgrid[0:256:gap, 0:256:gap].astype(np.uint8)
+    grad_h = cv.resize(grad_h_mat, tuple(reversed(dsize)), interpolation=cv.INTER_AREA)
+    grad_v = cv.resize(grad_v_mat, tuple(reversed(dsize)), interpolation=cv.INTER_AREA)
+    info = 'gradient: \nshape:{} \ndtype:{}\n'
+    info = info.format(grad_h.shape, grad_h.dtype)
+    print(info)
+    return grad_h, grad_v
