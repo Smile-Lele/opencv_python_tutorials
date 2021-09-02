@@ -36,14 +36,14 @@ class Model(nn.Module):
 
 
 if __name__ == '__main__':
-    # x = torch.unsqueeze(torch.linspace(-20, 20, 100), dim=1)  # torch requires 2 dim
-    # print(x.shape, x.size())
-    # y = x.pow(2) + 0.8 * torch.rand(x.size())
+    x = torch.unsqueeze(torch.linspace(-20, 20, 100), dim=1)  # torch requires 2 dim
+    print(x.shape, x.size())
+    y = x.pow(3) + 0.8 * torch.rand(x.size())
 
-    x = torch.squeeze(torch.normal(2, 3, size=(1, 2000)), dim=1).T
-    x, _ = torch.sort(x, 0)
-    sigma, mean = torch.std_mean(x)
-    y = torch.exp(-1 * ((x - mean) ** 2) / (2 * (sigma ** 2))) / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)
+    # x = torch.squeeze(torch.normal(2, 3, size=(1, 2000)), dim=1).T
+    # x, _ = torch.sort(x, 0)
+    # sigma, mean = torch.std_mean(x)
+    # y = torch.exp(-1 * ((x - mean) ** 2) / (2 * (sigma ** 2))) / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)
 
     model = Model()
 
