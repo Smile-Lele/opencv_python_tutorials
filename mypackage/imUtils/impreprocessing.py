@@ -77,7 +77,7 @@ def divide_images_helper(index_, imgs, mshape):
     img = concat(imgs, undistort_flag=True)
     temp_path = os.path.join('./_data', 'img')
     if not os.path.exists(temp_path):
-        os.mkdir(temp_path)
+        os.makedirs(temp_path)
     cv.imwrite(os.path.join(temp_path, str(index_) + '.png'), img)
     mat = imcvt.img_to_mat(img, mshape)
     return index_, mat

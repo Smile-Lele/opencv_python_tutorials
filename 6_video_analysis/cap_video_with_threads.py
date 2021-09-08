@@ -27,7 +27,7 @@ def write_video(cap, images, despath):
     frame_size = (np.int0(cap.get(cv.CAP_PROP_FRAME_WIDTH)), np.int0(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
 
     if not os.path.exists(despath):
-        os.mkdir(despath)
+        os.makedirs(despath)
 
     writer = cv.VideoWriter(os.path.join(despath, 'output.avi'), fourcc, fps, frame_size)
 

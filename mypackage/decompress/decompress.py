@@ -44,7 +44,7 @@ if __name__ == '__main__':
         file_folder = file_name.replace(".ultm", "")
         dest_path = os.path.join(file_path, file_folder)
         if not os.path.exists(dest_path):
-            os.mkdir(dest_path)
+            os.makedirs(dest_path)
 
         decompress(os.path.join(file_path, file_name), dest_path)
     print(time.time() - start_time)

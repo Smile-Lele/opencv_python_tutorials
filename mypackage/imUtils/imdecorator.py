@@ -63,7 +63,7 @@ x, y = np.mgrid[50:1080:150, 50:1920:150]
 for position in zip(x, y):
     for p in zip(position[1], position[0]):
         p = np.float32(p)
-        src = im_decorate(src, pend, p, 0.08, 90, 1)
+        src = im_decorate(src, pend, p, 0.05, -45, 1)
 # src = cv.bitwise_not(src)
 cv.imshow('', src)
 cv.waitKey()

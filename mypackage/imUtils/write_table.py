@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def write_file(data, file, header=None, sortby=None, ascend=None):
