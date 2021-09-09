@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def write_file(data, file, header=None, sortby=None, ascend=None):
+def write_table(data, file, header=None, sortby=None, ascend=None):
     """
     The function is to make it easier to save excel or csv files
     :param data: data is list of 2D or 1D
@@ -12,7 +12,6 @@ def write_file(data, file, header=None, sortby=None, ascend=None):
     :param ascend: optional param, default None
     :return: None
     """
-
 
     # init dataframe
     df = pd.DataFrame(data)
@@ -35,3 +34,37 @@ def write_file(data, file, header=None, sortby=None, ascend=None):
         with pd.ExcelWriter(file) as writer:
             df.to_excel(writer, sheet_name='Sheet1', index=False, encoding='utf8')
 
+
+def read_table(file, userows: str = None, usecols: str = None):
+    df = pd.DataFrame()
+
+    if '.csv' in file:
+        df = pd.read_csv(file)
+    elif '.xlsx' in file:
+        df = pd.read_excel(file)
+
+    data = np.asarray(df)
+
+    if userows:
+        start, end = userows.split(':')
+        if start != ' ':
+            data = data[int(start) - 2:, :]
+        if end != ' ':
+            data = data[:int(end) - 2, :]
+    if usecols:
+        start, end = usecols.split(':')
+        if start != ' ':
+            data = data[:, int(ord(start) - ord('A')):]
+        if end != ' ':
+            data = data[:, :int(ord(end) - ord('A'))]
+    print(f'in:{df.shape} -> out:{data.shape}')
+    return data
+
+
+def test():
+    df = read_table('4k.xlsx', userows='3:12', usecols='B:U')
+    print(np.array(df))
+
+
+if __name__ == '__main__':
+    test()
