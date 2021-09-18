@@ -26,7 +26,7 @@ def img_to_mat(img, mshape):
                                 np.arange(0, ceil_counter.shape[1], c_step), axis=1)
     mat = np.divide(ceil_add, ceil_nums).astype(np.uint8)
 
-    print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
+    # print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
     return mat
 
 
@@ -50,7 +50,7 @@ def gen_mask(src):
     :return:
     """
     # create mask
-    mask = np.zeros(src.shape, dtype=np.float16)
+    mask = np.zeros(src.shape, dtype=np.float32)
     mask.fill(255)
 
     min_gray = np.min(src)
@@ -67,7 +67,7 @@ def masking(src: np.uint8, mask: np.uint8):
     :return:
     """
     scales = np.divide(mask, 255)
-    image = np.round(np.multiply(src, scales, dtype=np.float16)).astype(dtype=np.uint8)
+    image = np.round(np.multiply(src, scales, dtype=np.float32)).astype(dtype=np.uint8)
     image = scaleAbs_ex(image, 255)
     return image
 
@@ -89,6 +89,6 @@ def evaluating(mat):
     range_ = max_ - min_
     mean, stddev = cv.meanStdDev(mat)
 
-    print(f'evaluate: \nmean:{mean}, stddev:{stddev}, range:{range_}')
+    print(f'evaluate: μ:{mean[0, 0]:.2f} | σ:{stddev[0, 0]:.2f} | range:{range_}')
 
     return range_

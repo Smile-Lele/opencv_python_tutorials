@@ -75,7 +75,8 @@ def transform(src_img):
     corners = approx.squeeze()
     for corner in corners:
         corner = tuple(corner)
-        cv.circle(src_img, corner, 6, random.choice(COLORS), -1)
+        # cv.circle(src_img, corner, 6, random.choice(COLORS), -1)
+        cv.drawMarker(src_img, corner, random.choice(COLORS), markerType=cv.MARKER_TILTED_CROSS, markerSize=30, thickness=3)
     imdict['src_img'] = src_img
 
     # 2. find min areaRect as target rectangle

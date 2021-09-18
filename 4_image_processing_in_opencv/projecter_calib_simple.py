@@ -41,52 +41,6 @@ def get_mid_grayscale(img):
     return max_grayscale
 
 
-def detect_anomalies(data, calib_shape):
-    pnts_num = calib_shape[0] * calib_shape[1]
-    data_num = len(data) if data is not None else 0
-    data_index = np.argsort(data, kind='mergesort')
-    data_sort = data[data_index]
-    mask = np.zeros_like(data_sort, dtype=bool)
-    diff_data = np.diff(data_sort)
-
-    if data_num < pnts_num:
-        raise ValueError(f'detect points:{data_num}')
-
-    if data_num == pnts_num:
-        mask.fill(True)
-        print(f'Points:{data_num}, Valid:{np.count_nonzero(mask)}')
-        return mask
-
-    start_index = np.arange(data_num - pnts_num + 1)
-    end_index = start_index + pnts_num
-    diff_mean = [np.mean(diff_data[start:end]) for start, end in zip(start_index, end_index)]
-    min_index = np.argmin(diff_mean)
-    mask[start_index[min_index]:end_index[min_index]] = True
-    mask = np.append(mask, False)
-
-    data_index_sort = np.argsort(data_index, kind='mergesort')
-    mask = mask[data_index_sort]
-
-    print(f'Points:{data_num}, Valid:{np.count_nonzero(mask)}')
-    return mask
-
-
-def find_four_corners(imsize, pnts):
-    row, col = imsize
-
-    top_left = (0, 0)
-    top_right = (col, 0)
-    bottom_left = (0, row)
-    bottom_right = (col, row)
-
-    def distance(base, pts):
-        dist = np.sum(np.power(pts - base, 2), axis=1)
-        return pnts[np.argmin(dist)]
-
-    dist_partical = partial(distance, pts=pnts)
-    return dist_partical(top_left), dist_partical(top_right), dist_partical(bottom_left), dist_partical(bottom_right)
-
-
 def calc_angle(pnts):
     row, col = pnts.shape[:2]
 
@@ -102,52 +56,27 @@ def calc_angle(pnts):
     return angle
 
 
-def sort_pnts(imsize, calib_shape, pnts):
-    # calc rotated matrix in order to draw mesh grid
-    four_corners = find_four_corners(imsize, pnts)
-    four_corners = np.array(four_corners).reshape(-1, 2)
-    center = np.mean(four_corners, axis=0)
-
-    angle = calc_angle(four_corners.reshape(2, 2, 2))
-
-    rot_mat = cv.getRotationMatrix2D(center, angle, scale=1)[:, :2]
-
-    four_corners = np.matmul(four_corners, rot_mat)
-
-    grid = (four_corners[3] - four_corners[0]) / np.array([calib_shape[1] - 1, calib_shape[0] - 1])
-
-    pnts = np.matmul(pnts, rot_mat)
-
-    coordinates = (pnts - four_corners[0] + grid / 2) // grid
-    idex = np.lexsort([coordinates[:, 0], coordinates[:, 1]])
-    sorted_pnts = pnts[idex, :].reshape(calib_shape[0], calib_shape[1], 2)
-
-    return sorted_pnts
-
-
-def extract_pnts(bin_img, calib_shape):
-    # method1 to find points
-    # compo_num, labels, stat, centroids = cv.connectedComponentsWithStatsWithAlgorithm(binarilized_img, 8, cv.CV_32S,
-    #                                                                                   cv.CCL_DEFAULT)
-    # area = stat[1:, cv.CC_STAT_AREA].squeeze()
-    #
-    # # anomalies detection
-    # mask = detect_anomalies(area, calib_shape)
-    # moments = centroids[1:, ...]
-    # pnts = moments[mask]
-    # pnts = pnts.reshape(-1, 2)  # important
-
+def extract_pnts(bin_img, calib_shape, visibility=False):
     # method2 to find points
     ret, pnts = cv.findCirclesGrid(bin_img, calib_shape)
     print(f'find points:{ret}')
-    # draw chessboard corners
-    # cv.drawChessboardCorners(bin_img, calib_shape, pnts, True)
-    # bin_img = cv.resize(bin_img, None, fx=0.5, fy=0.5, interpolation=cv.INTER_AREA)
-    # cv.imshow('corners', bin_img)
-    # cv.waitKey()
+
+    # fast method to find sub pixel
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 1e-3)
+    cv.cornerSubPix(bin_img, pnts, calib_shape, (-1, -1), criteria)
+
+    # accurate method to find sub pixel
+    # cv.find4QuadCornerSubpix(bin_img, pnts, calib_shape)
 
     sorted_pnts = pnts.reshape(calib_shape[0], calib_shape[1], 2)
-
+    if visibility:
+        # draw chessboard corners
+        temp = bin_img.copy()
+        cv.drawChessboardCorners(temp, calib_shape, pnts, True)
+        temp = cv.resize(temp, None, fx=0.3, fy=0.3, interpolation=cv.INTER_AREA)
+        cv.imshow('corners', temp)
+        cv.waitKey()
+        cv.destroyWindow('corners')
     return sorted_pnts
 
 
@@ -186,7 +115,6 @@ def get_pnts_deviation(b_pnts, w_pnts):
     # moving black points based on white points
     roi_pnts_b = get_roi_pnts(b_pnts)
     roi_pnts_w = get_roi_pnts(w_pnts)
-    print(roi_pnts_b)
 
     mean_center_b = np.mean(roi_pnts_b, axis=(0, 1))
     mean_center_w = np.mean(roi_pnts_w, axis=(0, 1))
@@ -265,11 +193,11 @@ def main():
     mean_center_b, mean_center_w, b_angle, w_angle = get_pnts_deviation(b_pnts, w_pnts)
     rotated_matrix = cv.getRotationMatrix2D(mean_center_b.tolist(), b_angle, scale=1)
     rotated_im_b = cv.warpAffine(black, rotated_matrix, (col, row))
-    cv.circle(rotated_im_b, np.int32(mean_center_b.tolist()), 10, 255, -1, cv.LINE_AA)
+    cv.drawMarker(rotated_im_b, np.int32(mean_center_b.tolist()), 0, markerType=cv.MARKER_DIAMOND, markerSize=50, thickness=5)
 
     rotated_matrix = cv.getRotationMatrix2D(mean_center_w.tolist(), w_angle, scale=1)
     rotated_im_w = cv.warpAffine(white, rotated_matrix, (col, row))
-    cv.circle(rotated_im_w, np.int32(mean_center_w.tolist()), 10, 255, -1, cv.LINE_AA)
+    cv.drawMarker(rotated_im_w, np.int32(mean_center_w.tolist()), 0, markerType=cv.MARKER_DIAMOND, markerSize=50, thickness=5)
 
     # move image to the center of frame
 
