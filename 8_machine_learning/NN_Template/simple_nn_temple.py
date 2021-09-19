@@ -75,7 +75,7 @@ def val_model(model, device, criteria, val_loader):
 
 
 def main():
-    inps = torch.unsqueeze(torch.linspace(-3, 3, 2500), dim=1)
+    inps = torch.unsqueeze(torch.linspace(-3, 3, 200), dim=1)
     tgts = inps.pow(2) + 0.3 * torch.rand(inps.size())
     dataset = TensorDataset(inps, tgts)
 

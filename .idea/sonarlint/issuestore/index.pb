@@ -23,3 +23,11 @@ b
 24_image_processing_in_opencv/otsus_binarization.py,0/8/085fd6124dd2610c025fa600ceea9954a61e0782
 e
 54_image_processing_in_opencv/adaptive_thresholding.py,a/8/a8a5a1e4993e9552e07727d7df1c28d13ce22a20
+]
+-8_machine_learning/NN_Template/nn_template.py,7/b/7b5acf22b4813afd322fe8f396a445d4b72e9092
+b
+28_machine_learning/NN_Template/simple_nn_temple.py,f/d/fd5cb7f085262e82bb27e70d1562067440b04b34
+a
+18_machine_learning/pytorch_proj/regression_new.py,1/a/1a3594a017b31517883ecb113d53b867634e752c
+f
+64_image_processing_in_opencv/binarize_with_DFT_OTSU.py,f/f/ffee0b2484449622ea4ac0241a3c631cd29c23c0
