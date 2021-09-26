@@ -9,16 +9,16 @@ COLORS = np.random.randint(150, 255, size=(100, 3)).tolist()
 
 # load the path of images
 cv.samples.addSamplesDataSearchPath('../mydata')
-file = cv.samples.findFile('captured_white_1.png')
+file = cv.samples.findFile('captured_white.png')
 if not file:
     raise FileNotFoundError('file not found')
 
 img = cv.imread(file)
 gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-kernel_dx = np.array([[-3, 0, 3],
-                      [-3, 0, 3],
-                      [-3, 0, 3]])
+kernel_dx = np.array([[3, 0, -3],
+                      [3, 0, -3],
+                      [3, 0, -3]])
 dx = cv.filter2D(gray, cv.CV_32FC1, kernel_dx)
 dx = cv.convertScaleAbs(dx)
 _, dx = impre.otsu_threshold(dx, visibility=False)
@@ -44,7 +44,7 @@ cnt = contours[0]
 epsilon = 0.1 * cv.arcLength(cnt, True)
 approx = cv.approxPolyDP(cnt, epsilon, True)
 # print(approx.squeeze().tolist())
-assert len(approx) == 4, 'approx res should be 4'
+assert len(approx) == 4, f'approx res:{len(approx)} should be 4'
 
 corners = approx.squeeze()
 for corner in corners:

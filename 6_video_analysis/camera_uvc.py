@@ -1,4 +1,5 @@
 # coding: utf-8
+import time
 
 import cv2 as cv
 
@@ -13,7 +14,7 @@ def set_params(cap, fps=60, exposure=6):
            cap.set(cv.CAP_PROP_GAIN, 0),
            cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280),
            cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720),
-           cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))]
+           cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'YUY2'))]
     return all(ret)
 
 
@@ -39,7 +40,9 @@ def grab(cap, isflip=False):
     save_num = 0
     show_param_enable = True
     while cap.isOpened():
+        start_time = time.time()
         _ret, frame = cap.read()
+        print(1000*(time.time() - start_time))
         if not _ret:
             raise ValueError('fail to capture frame!')
         if show_param_enable:
@@ -53,7 +56,7 @@ def grab(cap, isflip=False):
             frame = cv.flip(frame, flipCode=1)
 
         frame_counter += 1
-        key = cv.waitKey(15)
+        key = cv.waitKey(1)
         if key == 27:
             break
         if key == ord('s'):
@@ -79,7 +82,7 @@ def main():
     if not cap.isOpened():
         raise RuntimeError('device not found')
 
-    ret = set_params(cap, 60, 7)
+    ret = set_params(cap, 5, 7)
     if not ret:
         raise ValueError('fail to set parameters')
 
