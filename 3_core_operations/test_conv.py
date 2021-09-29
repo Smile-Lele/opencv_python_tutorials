@@ -26,6 +26,7 @@ _, dx = impre.otsu_threshold(dx, visibility=False)
 kernel_dy = np.array([[-3, -3, -3],
                       [0, 0, 0],
                       [3, 3, 3]])
+
 dy = cv.filter2D(gray, cv.CV_32FC1, kernel_dy)
 dy = cv.convertScaleAbs(dy)
 _, dy = impre.otsu_threshold(dy, visibility=False)
