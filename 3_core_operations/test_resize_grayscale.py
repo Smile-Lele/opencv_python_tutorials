@@ -47,21 +47,23 @@ import numpy as np
 k4 = cv.imread('S000084_P1.png', cv.IMREAD_GRAYSCALE)
 print(k4)
 
-k4_c = k4[1:, 1:]
+k4_crop = k4[1:, 1:]
 # print(k4_c)
 
-target_r, target_c = np.around(k4.shape[:2] / np.sqrt(2)).astype(np.uint32)
-print(target_r, target_c)
-k4_resize = cv.resize(k4, (target_c, target_r), interpolation=cv.INTER_AREA)
-k4_c_resize = cv.resize(k4_c, (target_c, target_r), interpolation=cv.INTER_AREA)
+target_row, target_col = np.around(k4.shape[:2] / np.sqrt(2)).astype(np.uint32)
+print(target_col, target_row)
+k4_resize = cv.resize(k4, (target_col, target_row), interpolation=cv.INTER_AREA)
+k4_crop_resize = cv.resize(k4_crop, (target_col, target_row), interpolation=cv.INTER_AREA)
 
 # print(k4_resize)
 # print(k4_c_resize)
 
 k8_resize = cv.resize(k4_resize, None, fx=2, fy=2, interpolation=cv.INTER_AREA)
-k8_c_resize = cv.resize(k4_c_resize, None, fx=2, fy=2, interpolation=cv.INTER_AREA)
+k4_crop_resize = cv.resize(k4_crop_resize, None, fx=2, fy=2, interpolation=cv.INTER_AREA)
+print(k4_crop_resize.shape)
+exit()
 while True:
-    cv.imshow('k8', k8_c_resize)
+    cv.imshow('k8', k4_crop_resize)
     cv.waitKey(2)
     cv.imshow('k8', k8_resize)
     cv.waitKey(2)

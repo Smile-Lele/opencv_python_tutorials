@@ -1,13 +1,18 @@
 # coding:utf-8
+import glob
 import os
+import random
 from concurrent import futures
 from functools import partial
 
 import cv2 as cv
 import numpy as np
 import tqdm
-from matplotlib import pyplot as plt
 from scipy import signal
+
+from calib_lib.cam_undistort import undistorting
+from myutils import ext_json
+from myutils import imconverter as imcvt
 
 
 def otsu_threshold(img, min_thre=0, max_thre=255, offset=0, inv=False, visibility=False):
@@ -42,7 +47,7 @@ def de_noise(image, blurflag=True):
     image = image.copy()
     image = cv.fastNlMeansDenoising(image, 5, 7, 21)
     if blurflag:
-        image = cv.GaussianBlur(image, (5, 5), 0)
+        image = cv.edgePreservingFilter(image, sigma_s=25, sigma_r=0.3, flags=cv.RECURS_FILTER)
     return image
 
 
@@ -72,7 +77,7 @@ def concat(imgs, undistort_flag=False):
     return img
 
 
-def divide_images_helper(index_, imgs, mshape):
+def divide_images_helper(index_, img, mshape):
     """
     The function is concat a batch of images and cut it as average grids
     :param index_: in order to multiple threads
@@ -80,11 +85,11 @@ def divide_images_helper(index_, imgs, mshape):
     :param mshape: (row, col)
     :return: tuple(index, matrix)
     """
-    img = concat(imgs, undistort_flag=True)
-    temp_path = os.path.join('./_data', 'img')
-    if not os.path.exists(temp_path):
-        os.makedirs(temp_path)
-    cv.imwrite(os.path.join(temp_path, str(index_) + '.png'), img)
+    # img = concat(imgs, undistort_flag=True)
+    # temp_path = os.path.join('./_data', 'img')
+    # if not os.path.exists(temp_path):
+    #     os.makedirs(temp_path)
+    # cv.imwrite(os.path.join(temp_path, str(index_) + '.png'), img)
     mat = imcvt.img_to_mat(img, mshape)
     return index_, mat
 
@@ -100,8 +105,8 @@ def divide_images(grab_imgs, mshape):
     to_do_list = list()
     MAX_WORKERS = len(grab_imgs)
     with futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        for index_, imgs in enumerate(grab_imgs):
-            future = executor.submit(divide_images_helper, index_, imgs, mshape)
+        for index_, img in enumerate(grab_imgs):
+            future = executor.submit(divide_images_helper, index_, img, mshape)
             to_do_list.append(future)
         done_iter = futures.as_completed(to_do_list)
         done_iter = tqdm.tqdm(done_iter, total=len(grab_imgs), desc='Ceil images')
@@ -109,30 +114,12 @@ def divide_images(grab_imgs, mshape):
         res = [future.result() for future in done_iter]
         sort_res = sorted(res, key=lambda r: r[0])
         avg_ims = [res[1] for res in sort_res]
+
     return avg_ims
 
 
-def fit_data(scales, avg_ims):
-    print('fit data')
-    row, col = avg_ims[0].shape[:2]
-    func_dict = dict()
-    for r in range(row):
-        for c in range(col):
-            grayscales = [img[r, c] for img in avg_ims]
-            ply_fit = np.polyfit(scales, grayscales, 1)
-            func_dict['_'.join(['f', str(r), str(c)])] = ply_fit.tolist()
-            f = np.poly1d(ply_fit, variable='x')
-
-            plt.plot(scales, f(scales), color='blue')
-            plt.plot(scales, grayscales, color='red')
-
-    print('write json')
-    ext_json.write('./_data/func_data.json', func_dict)
-    plt.show()
-
-
 def is_grayscale_available(image):
-    grayscale_range = range(190, 220)
+    grayscale_range = range(190, 230)
     image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     hist = cv.calcHist([image], [0], None, [255], [-10, 260])
     hist_list = list(hist.T[0])
@@ -154,3 +141,76 @@ def is_grayscale_available(image):
         return 1
 
     return 0
+
+
+def remove_anomaly_gaussian(imgs):
+    """
+    This function is to remove less anomaly images
+    :param imgs:
+    :return: get images in larger possibility distribution
+    """
+    im_gray_mean = [np.mean(img) for img in imgs]
+    min_, max_ = np.argmin(im_gray_mean), np.argmax(im_gray_mean)
+    imgs.pop(min_)
+    imgs.pop(max_)
+
+    im_gray_mean = [np.mean(img) for img in imgs]
+    im_gray_mean = np.asarray(im_gray_mean)
+    mean, std = im_gray_mean.mean(), im_gray_mean.std()
+    cond = np.abs(im_gray_mean - mean) < std
+    valid_index = np.where(cond)
+    # print(valid_index[0].tolist())
+    valid_imgs = [imgs[i] for i in valid_index[0].tolist()]
+    print(f'total: {len(imgs)}, valid: {len(valid_imgs)}')
+
+    return valid_imgs
+
+
+def remove_anomaly_kmeans(imgs):
+    data = [np.mean(img) for img in imgs]
+
+    data = np.asarray(data, dtype=np.float32).reshape(-1, 1)
+
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 100, 1e-3)
+    flags = cv.KMEANS_RANDOM_CENTERS
+
+    # 应用K均值
+    compactness, labels, centers = cv.kmeans(data, 5, None, criteria, 100, flags)
+    # print(centers)
+
+    class_index = np.argsort(centers, axis=0)
+    med_class_index = class_index[1:4].ravel()
+
+    valid_region = np.zeros_like(labels, bool)
+    for i in med_class_index:
+        valid_region |= (labels == i)
+
+    valid_index = np.where(valid_region)
+    valid_imgs = [imgs[i] for i in valid_index[0].tolist()]
+    print(f'total: {len(imgs)}, valid: {len(valid_imgs)}')
+    return valid_imgs
+
+
+def remove_anomaly_ransac(imgs, sigma):
+    data = [np.mean(img) for img in imgs]
+
+    d_min, d_max = np.min(data), np.max(data)
+    pivot = np.linspace(d_min, d_max + 1, num=np.int0(np.ptp(data)))
+    max_pnts_num = -1
+    retpivot = 0
+    for p in pivot:
+        region_pnts_num = len(data) - (np.sum(data > p + sigma) + np.sum(data < p - sigma))
+        if region_pnts_num >= max_pnts_num:
+            max_pnts_num = region_pnts_num
+            retpivot = p
+        if max_pnts_num == -1:
+            print(p)
+
+    min_index = np.argwhere(np.asarray(data) >= retpivot - sigma).ravel()
+    max_index = np.argwhere(np.asarray(data) <= retpivot + sigma).ravel()
+    union_index = set(min_index) & set(max_index)
+
+    valid_imgs = [imgs[i] for i in union_index]
+    print(f'total: {len(imgs)}, valid: {len(valid_imgs)}')
+
+    return valid_imgs

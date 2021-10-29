@@ -44,6 +44,26 @@ def resize_ex(src: (np.uint8, np.float32), dsize):
     return dst
 
 
+def resize_for_display(img, screen_size=(1920*4/5, 1080*4/5)):
+    """
+    The method is to make image to fit window size in the screen while displaying
+    :param img:
+    :param screen_size:
+    :return:
+    """
+    row, col = img.shape[:2]
+    screen_c, screen_r = screen_size
+    row_ratio = screen_r / row
+    col_ratio = screen_c / col
+    scale_ratio = row_ratio if row_ratio <= col_ratio else col_ratio
+    if scale_ratio == 1:
+        return img
+    else:
+        INTERPOLATION = cv.INTER_AREA if scale_ratio < 1 else cv.INTER_CUBIC
+        img = cv.resize(img, None, fx=scale_ratio, fy=scale_ratio, interpolation=INTERPOLATION)
+        return img
+
+
 def gen_mask(src):
     """
     :param src:
