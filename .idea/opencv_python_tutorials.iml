@@ -11,7 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/papers" />
       <excludeFolder url="file://$MODULE_DIR$/yolo3_pytorch/VOCdevkit" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (opencv_python_tutorials)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

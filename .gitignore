@@ -5,6 +5,7 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+.idea/misc.xml
 
 # yolo3 dataset and weigth file
 yolo3_pytorch/VOCdevkit/VOC2007/Annotations/
