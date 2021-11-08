@@ -24,13 +24,13 @@ def otsu_threshold(img, min_thre=0, max_thre=255, offset=0, inv=False, visibilit
     img[img > max_thre] = max_thre
 
     thre, thre_img = cv.threshold(img, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
-    print(f'otsu thre:{thre}')
+    # print(f'otsu thre:{thre}')
 
     if inv:
         thre_img = cv.bitwise_not(thre_img)
 
     if visibility:
-        temp = cv.resize(thre_img, None, fx=0.3, fy=0.3, interpolation=cv.INTER_AREA)
+        temp = imcvt.resize_for_display(thre_img)
         cv.imshow('otsu_thre', temp)
         cv.waitKey()
         cv.destroyWindow('otsu_thre')

@@ -112,3 +112,11 @@ def evaluating(mat):
     print(f'evaluate: μ:{mean[0, 0]:.2f} | σ:{stddev[0, 0]:.2f} | range:{range_}')
 
     return range_
+
+
+def remap_ex(img, mapx, mapy):
+    row, col = img.shape[:2]
+    mapx = mapx.reshape(row, col).astype(np.float32)
+    mapy = mapy.reshape(row, col).astype(np.float32)
+    new_img = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
+    return new_img

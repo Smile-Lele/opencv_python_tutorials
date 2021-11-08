@@ -1,13 +1,15 @@
 # coding: utf-8
 
+from functools import partial
+
 import cv2 as cv
 import numpy as np
 
-from myutils import impreprocessing as impre
-from myutils import imtemplate
-from functools import partial
 from myutils import ext_json
 from myutils import imconverter as imcvt
+from myutils import impreprocessing as impre
+from myutils import imtemplate
+from myutils import timer
 
 
 def find_four_corners(imsize, pnts):
@@ -26,12 +28,12 @@ def find_four_corners(imsize, pnts):
     return dist_partical(top_left), dist_partical(top_right), dist_partical(bottom_left), dist_partical(bottom_right)
 
 
-def extractROI(white_img, calib_img, calib_shape, visibility=False):
-    row, col = white_img.shape[:2]
+def extractROI(img, calib_img, calib_shape, visibility=False):
+    row, col = img.shape[:2]
     calib_r_num, calib_c_num = calib_shape
 
-    # img = cv.cvtColor(white_img, cv.COLOR_BGR2GRAY)
-    img = cv.fastNlMeansDenoising(white_img, 5, 7, 21)
+    # img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    # img = cv.fastNlMeansDenoising(img, 5, 7, 21)
     # img = cv.GaussianBlur(img, (5, 5), 0)
 
     kernel_dx = np.array([[3, 0, -3],
@@ -192,7 +194,7 @@ def find_pnts_blob(bin_img, calib_shape, visibility=False):
     return sorted_pnts
 
 
-def extract_pnts_with_circle(roi, calib_shape, visibility=False):
+def extract_pnts_with_blob(roi, calib_shape, visibility=False):
     # Binarization
     MED_GRAYSCALE = get_mid_grayscale(roi)
     THRE_OFFSET = 35
@@ -202,7 +204,7 @@ def extract_pnts_with_circle(roi, calib_shape, visibility=False):
     # extract valid black and white points
     w_pnts = find_pnts_blob(white, calib_shape, visibility)
     b_pnts = find_pnts_blob(black, calib_shape, visibility)
-    return w_pnts, b_pnts, white, black
+    return w_pnts, b_pnts
 
 
 def find_pnts_mincircle(cell, visibility):
@@ -214,7 +216,11 @@ def find_pnts_mincircle(cell, visibility):
     def pnt_filter(bin_img):
         cnts, _ = cv.findContours(bin_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_TC89_KCOS)
         centers = []
-        area_ratio = 0.75
+        min_area_lmt = 80
+        max_area_lmt = 3000
+        area_ratio = 0.6
+        aspect_ratio = 0.65
+        epsilon = 1e-8
 
         if visibility:
             temp = cv.cvtColor(bin_img, cv.COLOR_GRAY2BGR)
@@ -226,10 +232,12 @@ def find_pnts_mincircle(cell, visibility):
         for cnt in cnts:
             area = cv.contourArea(cnt)
             center, radius = cv.minEnclosingCircle(cnt)
-            if 200 < area < 800 and area / np.pi / np.power(radius, 2) > area_ratio:
+            minRect = cv.minAreaRect(cnt)
+            rect_h, rect_w = sorted(minRect[1])
+            if min_area_lmt < area < max_area_lmt and rect_h / (rect_w+epsilon) > aspect_ratio and area / np.pi / (np.power(radius, 2)+epsilon) > area_ratio:
                 centers.append(center)
         # TODO: have to detect one points
-        assert len(centers) == 1, 'fail to detect points'
+        assert len(centers) == 1, f'fail to detect {len(centers)=} points'
         return centers[0]
 
     w_pnt = pnt_filter(white)
@@ -340,6 +348,7 @@ def get_roi_pnts(pnts, decay_factor=0.4):
 
     res_pnts_row, decay_pnts_row = decay_invalid_pnts(row, decay_factor)
     res_pnts_col, decay_pnts_col = decay_invalid_pnts(col, decay_factor)
+    # print(f'{res_pnts_row=} | {res_pnts_col=}')
 
     roi_row_start = decay_pnts_row // 2
     roi_row_end = roi_row_start + res_pnts_row
@@ -350,201 +359,213 @@ def get_roi_pnts(pnts, decay_factor=0.4):
     return pnts[roi_row_start:roi_row_end, roi_col_start:roi_col_end]
 
 
-def get_cvtcoef_pixel_mm(pnts, mm_space):
+def get_cvtcoef_pixel_mm(pnts, mm_gap):
     """
     The function is to get the coefficients of converting pixel to mm
     :param pnts: recommend using black points to compute cvtcoef
-    :param mm_space: the format is (row, col), unit is mm
+    :param mm_gap: the format is (row, col), unit is mm
     :return: return average cvtcoef
     """
-    r_mm_space, c_mm_space = mm_space
-    roi = get_roi_pnts(pnts, decay_factor=0.4)
+    r_mm_space, c_mm_space = mm_gap
+    roi = get_roi_pnts(pnts, decay_factor=0.6)
     row_pixel_space = np.diff(roi, axis=0)[:, :, 1]
     col_pixel_space = np.diff(roi, axis=1)[:, :, 0]
-    cvtcoef = np.mean(np.mean(row_pixel_space) / r_mm_space + np.mean(col_pixel_space) / c_mm_space)
+    cvtcoef = (np.mean(row_pixel_space) / r_mm_space + np.mean(col_pixel_space) / c_mm_space) / 2
 
     return cvtcoef
 
 
-def transform_pnts(b_pnts, w_pnts):
+def transform_pnts(pnts):
     # moving black points based on white points
-    roi_pnts_b = get_roi_pnts(b_pnts)
-    roi_pnts_w = get_roi_pnts(w_pnts)
+    roi_pnts = get_roi_pnts(pnts)
 
-    mean_center_b = np.mean(roi_pnts_b, axis=(0, 1))
-    mean_center_w = np.mean(roi_pnts_w, axis=(0, 1))
-
-    center_bias = mean_center_w - mean_center_b
-    print(f'Center deviation: dx, dy= ({center_bias[0]:.2f}, {center_bias[1]:.2f})')
+    # compute center position
+    center = np.mean(roi_pnts, axis=(0, 1))
 
     # compute angles
-    b_angle = calc_angle(roi_pnts_b)
-    w_angle = calc_angle(roi_pnts_w)
-    print(f'Angle deviation: b, w= ({b_angle:.3f}, {w_angle:.3f})')
+    angle = calc_angle(roi_pnts)
 
     # rotate white and black points to Cartesian coordinates
-    rot_mat_b = cv.getRotationMatrix2D(mean_center_b.tolist(), b_angle, scale=1)
-    rot_mat_w = cv.getRotationMatrix2D(mean_center_b.tolist(), w_angle, scale=1)
+    rot_mat = cv.getRotationMatrix2D(center.tolist(), angle, scale=1)
     # print(rot_mat_b, rot_mat_w)
 
-    # move and rotate all points
-    w_pnts -= center_bias
+    pnts = pnts.reshape(-1, 2).T
+    pnts = np.insert(pnts, 2, values=1, axis=0)
+    rot_pnts = np.matmul(rot_mat, pnts).T
 
-    b_pnts = b_pnts.reshape(-1, 2).T
-    b_pnts = np.insert(b_pnts, 2, values=1, axis=0)
-    w_pnts = w_pnts.reshape(-1, 2).T
-    w_pnts = np.insert(w_pnts, 2, values=1, axis=0)
-    b_pnts = np.matmul(rot_mat_b, b_pnts).T
-    w_pnts = np.matmul(rot_mat_w, w_pnts).T
-
-    return w_pnts, b_pnts, mean_center_b, mean_center_w, b_angle, w_angle
+    return rot_pnts, center, angle
 
 
-def show_calib_res(black, white, mean_center_b, mean_center_w, b_angle, w_angle, tr_b_pnts, tr_w_pnts):
-    # visualization: show result
-    row, col = black.shape[:2]
-    rotated_matrix = cv.getRotationMatrix2D(mean_center_b.tolist(), b_angle, scale=1)
-    rot_im_b = cv.warpAffine(black, rotated_matrix, (col, row), borderMode=cv.BORDER_CONSTANT, borderValue=255)
-    cv.drawMarker(rot_im_b, np.int32(mean_center_b.tolist()), 0, cv.MARKER_TILTED_CROSS, 50, 5)
+def undistorting(img, cvt_pnts_dev, flag=None):
+    row, col = img.shape[:2]
+    ipts_pnts = imtemplate.draw_calibboard((row, col), (16, 16))
+    tgts_pnts = ipts_pnts - cvt_pnts_dev
 
-    tx, ty = -(mean_center_w - mean_center_b)
-    rot_mtx = cv.getRotationMatrix2D(mean_center_w.tolist(), w_angle, scale=1)
-    tr_mtx = np.matrix([[0, 0, tx],
-                        [0, 0, ty]])
-    tr_mtx += rot_mtx
-    tr_im_w = cv.warpAffine(white, tr_mtx, (col, row), borderMode=cv.BORDER_CONSTANT, borderValue=255)
+    # using H matrix
+    if flag == 'UNDIST_H':
+        H, _ = cv.findHomography(ipts_pnts, tgts_pnts)
+        ipts_pnts = cv.perspectiveTransform(np.array([ipts_pnts]), H)
+        ipts_pnts = np.squeeze(ipts_pnts)
+        img = cv.warpPerspective(img, H, (col, row), flags=cv.INTER_LINEAR)
 
-    tr_b_pnts = np.insert(tr_b_pnts, 2, values=0, axis=1).astype(np.float32)
-    tr_w_pnts = np.expand_dims(tr_w_pnts, 1).astype(np.float32)
+        distcoef = estimate_radial_dist((row, col), tgts_pnts, ipts_pnts)
+        mapx, mapy = gen_mapxy((row, col), distcoef)
 
-    # method 1: use homography
-    H, _ = cv.findHomography(tr_w_pnts, tr_b_pnts)
-    # tr_im_w = cv.warpPerspective(tr_im_w, H, (col, row), flags=cv.INTER_CUBIC)
+        img = cv.remap(img, mapx, mapy, cv.INTER_LINEAR, borderMode=cv.BORDER_CONSTANT, borderValue=0)
+        # _, img = cv.threshold(img, 5, 255, cv.THRESH_TOZERO)
 
-    # method 2: use calibrate camera
-    # INIT_CAM_MAT = False
-    # mtx = None
-    # flag = cv.CALIB_USE_QR  # cv.CALIB_FIX_PRINCIPAL_POINT
-    # if INIT_CAM_MAT:
-    #     f = 25  # focal length
-    #     cmos = np.array([12.8, 9.6])  # CMOS size
-    #     resolution = np.array([5472, 3648])  # max resolution
-    #     dx, dy = cmos / resolution
-    #     cx, cy = resolution / 2
-    #     mtx = np.array([[f / dx, 0, cx], [0, f / dy, cy], [0, 0, 1]]).astype(np.float32)
-    #     flag = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT + cv.CALIB_RATIONAL_MODEL
-    #     print(f'init cameraMat:\n{mtx}')
-    #
-    # criteria = (cv.TERM_CRITERIA_MAX_ITER + cv.TERM_CRITERIA_EPS, 50, 1e-4)
-    # retval = cv.calibrateCameraRO([tr_b_pnts], [tr_w_pnts], (col, row), 1, mtx, None, flags=flag, criteria=criteria)
-    # rmse, mtx, dists, rvecs, tvecs, _ = retval
-    # print(f'RMSE: {rmse}')
-    #
-    # new_mtx, _ = cv.getOptimalNewCameraMatrix(mtx, dists, (col, row), 1, (col, row))
-    # mapx, mapy = cv.initUndistortRectifyMap(mtx, dists, None, new_mtx, (col, row), cv.CV_32FC1)
-    # # tr_im_w = cv.remap(tr_im_w, mapx, mapy, cv.INTER_CUBIC, borderMode=cv.BORDER_CONSTANT, borderValue=0)
-
-    # visualization: show result
-    rot_im_b = cv.cvtColor(rot_im_b, cv.COLOR_GRAY2BGR)
-    tr_im_w = cv.cvtColor(tr_im_w, cv.COLOR_GRAY2BGR)
-    rot_im_b[:, :, 2] = 255
-    rot_im_b[:, :, 0] = 255
-    tr_im_w[:, :, 0] = 255
-    tr_im_w[:, :, 1] = 255
-
-    add = cv.addWeighted(cv.bitwise_not(rot_im_b), 1, cv.bitwise_not(tr_im_w), 1, 0)
-    # cv.imwrite('add.png', add)
-    temp = cv.resize(add, None, fx=0.31, fy=0.31, interpolation=cv.INTER_AREA)
-    cv.imshow('temp', temp)
-    cv.waitKey()
-    cv.destroyWindow('temp')
+    cv.imwrite('calib_output.png', img)
+    # img = imcvt.resize_for_display(img)
+    # cv.imshow('calib', img)
+    # cv.waitKey()
+    # cv.destroyAllWindows()
+    return img
 
 
-def undistort_image(cvt_pnts_dev):
-    src = cv.imread('./_data/A2D_calib.png', cv.IMREAD_GRAYSCALE)
-    # src = cv.imread('calib_output.png', cv.IMREAD_GRAYSCALE)
-    row, col = src.shape[:2]
-
-    origin_pnts = imtemplate.draw_calibboard((1080, 1920), (16, 16))
-    undistorted_pnts = origin_pnts - cvt_pnts_dev
-
-    undistorted_pnts = np.insert(undistorted_pnts, 2, values=0, axis=1).astype(np.float32)
-    origin_pnts = np.expand_dims(origin_pnts, 1).astype(np.float32)
-
-    # method 1: use homography
-    H, _ = cv.findHomography(origin_pnts, undistorted_pnts, cv.FM_LMEDS, ransacReprojThreshold=1)
-    calib_src = cv.warpPerspective(src, H, (col, row), flags=cv.INTER_LINEAR, borderMode=cv.BORDER_CONSTANT,
-                                   borderValue=0)
-
-    # method 2: use calibrate camera
-    # flag = cv.CALIB_USE_QR  # cv.CALIB_FIX_PRINCIPAL_POINT
-    # criteria = (cv.TERM_CRITERIA_MAX_ITER + cv.TERM_CRITERIA_EPS, 50, 1e-4)
-    # retval = cv.calibrateCameraRO([undistorted_pnts], [origin_pnts], (col, row), 1, None, None, flags=flag,
-    #                               criteria=criteria)
-    # rmse, mtx, dists, rvecs, tvecs, _ = retval
-    # print(f'RMSE: {rmse}')
-    #
-    # new_mtx, _ = cv.getOptimalNewCameraMatrix(mtx, dists, (col, row), 1, (col, row))
-    # mapx, mapy = cv.initUndistortRectifyMap(mtx, dists, None, new_mtx, (col, row), cv.CV_32FC1)
-    # # calib_src = cv.remap(src, mapx, mapy, cv.INTER_CUBIC, borderMode=cv.BORDER_CONSTANT, borderValue=0)
-
-    cv.imwrite('calib_output.png', calib_src)
-    temp = imcvt.resize_for_display(calib_src)
-    cv.imshow('calib', temp)
-    cv.waitKey()
-    cv.destroyWindow('calib')
-    return calib_src
-
-
-def calibrate():
-    calib_shape = (16, 16)
-    mm_space = (4.68, 8.32)  # A2D(5.4, 9.6) 0.075  # Chair(4.68, 8.32) 0.065 -- pixel(72, 128)
-    cvt_coef_mm_pixel = 124.8 / 1920  # A2D: 144.3 / 1920  # Chair: 124.8 / 1920
-    calib_img = cv.imread('calib_chair_2nd.bmp', cv.IMREAD_GRAYSCALE)
-    white_img = cv.imread('calib_w.bmp', cv.IMREAD_GRAYSCALE)
-    roi = extractROI(white_img, calib_img, calib_shape, visibility=True)
-
-    # Method1: extract points using global threshold
-    w_pnts, b_pnts, white, black = extract_pnts_with_circle(roi, calib_shape, False)
-
-    # Method2: extract points using local threshold
-    # w_pnts, b_pnts = extract_pnts_with_mesh(roi, calib_shape, False)
-
-    # compute cvtcoef from pixel to mm
-    cvtcoef = get_cvtcoef_pixel_mm(b_pnts, mm_space)
-
-    # transform such as move and rotate black and white points in order to alignment
-    tr_w_pnts, tr_b_pnts, mean_center_b, mean_center_w, b_angle, w_angle = transform_pnts(b_pnts, w_pnts)
-    pnts_deviation = tr_w_pnts - tr_b_pnts
-    print(f'Max deviation: {abs(pnts_deviation / cvtcoef).max()}')
-
-    # visualization
-    show_calib_res(black, white, mean_center_b, mean_center_w, b_angle, w_angle, tr_b_pnts, tr_w_pnts)
-
+def write_calib_data(cvt_pnts_dev):
     # write json
-    cvt_pnts_dev = - pnts_deviation / cvtcoef
-    cvt_pnts_dev = cvt_pnts_dev.tolist()
-    title = ['dx', 'dy']
+    print(cvt_pnts_dev.shape)
+    cvt_pnts_dev = cvt_pnts_dev * np.array([1, -1])
+    key = ['dx', 'dy']
     calib_data = dict()
-    calib_data['map'] = [dict(zip(title, p)) for p in cvt_pnts_dev]
+    calib_data['map'] = [dict(zip(key, v)) for v in cvt_pnts_dev]
     calib_data['col'] = 16
     calib_data['row'] = 16
     calib_data['num'] = 256
     ext_json.write('calibrate.json', calib_data)
 
+
+def calib_using_xml(img, path_mapx='mapx.xml', path_mapy='mapy.xml'):
+    # read xml to remap
+    fs_x = cv.FileStorage(path_mapx, flags=cv.FILE_STORAGE_FORMAT_XML)
+    mapx = fs_x.getNode('mapx').mat()
+    fs_y = cv.FileStorage(path_mapy, flags=cv.FILE_STORAGE_FORMAT_XML)
+    mapy = fs_y.getNode('mapy').mat()
+    undist_img = cv.remap(img, mapx, mapy, cv.INTER_LINEAR, borderMode=cv.BORDER_CONSTANT, borderValue=0)
+    cv.imwrite('undist_img.png', undist_img)
+
+
+def gen_mapxy(dsize, distcoef):
+    src = imtemplate.gen_coordinates(dsize).reshape(-1, 2)
+    undist_pnts = undistort_with_distcoef(dsize, src, distcoef)
+    mapx, mapy = undist_pnts[:, 0], undist_pnts[:, 1]
+    row, col = dsize
+    mapx = mapx.reshape(row, col).astype(np.float32)
+    mapy = mapy.reshape(row, col).astype(np.float32)
+    return mapx, mapy
+
+
+def estimate_radial_dist(dsize, dist_pnts, undist_pnts):
+    row, col = dsize
+    cx, cy = col / 2, row / 2
+
+    d = (undist_pnts - dist_pnts).reshape(-1, 1)
+    undist_pnts = (undist_pnts - np.array([cx, cy]))
+    r_2 = np.sum(undist_pnts * undist_pnts, axis=1).reshape(-1, 1)
+    r_4 = np.power(r_2, 2)
+
+    D_col1 = undist_pnts * r_2
+    D_col2 = undist_pnts * r_4
+
+    D = np.stack([D_col1, D_col2], axis=2).reshape(-1, 2)
+    # print(f'{D.shape=}')
+    # print(f'{D}')
+
+    k = np.linalg.inv(D.T@D)@D.T@d
+
+    return k
+
+
+def undistort_with_distcoef(dsize, src, distcoef):
+    row, col = dsize
+    cx, cy = col / 2, row / 2
+    src = src - np.array([cx, cy])
+    # r_2 = np.sum(src * src, axis=1)
+    # coff = 1 - 1.3 * (distcoef[0] * r_2 + distcoef[1] * r_2 * r_2)
+    # undist_pnts_ = src * np.vstack([coff, coff]).T + np.array([cx, cy])
+
+    r_2 = np.sum(src * src, axis=1).reshape(-1, 1)
+    coff = 1 - (distcoef[0] * r_2 + distcoef[1] * r_2 * r_2)
+    undist_pnts = src * coff + np.array([cx, cy])
+
+    return undist_pnts
+
+
+def show_res(roi, tr_b_pnts, tr_w_pnts, flag=None):
+    canvas = np.zeros_like(roi)
+    canvas.fill(110)
+
+    # use H matrix
+    if flag == 'UNDIST_H':
+        # perspective for points
+        H, _ = cv.findHomography(tr_w_pnts, tr_b_pnts)
+        tr_w_pnts = cv.perspectiveTransform(np.array([tr_w_pnts]), H)
+        tr_w_pnts = np.squeeze(tr_w_pnts)
+
+        # undistort
+        dsize = canvas.shape[:2]
+        distcoef = estimate_radial_dist(dsize, tr_b_pnts, tr_w_pnts)
+        tr_w_pnts = undistort_with_distcoef(dsize, tr_w_pnts, distcoef)
+
+
+    [cv.circle(canvas, (c[0], c[1]), 12, 255, -1) for c in np.int0(tr_w_pnts)]
+    [cv.circle(canvas, (c[0], c[1]), 8, 0, -1) for c in np.int0(tr_b_pnts)]
+
+    canvas = imcvt.resize_for_display(canvas)
+    cv.imshow('canvas', canvas)
+    cv.waitKey()
+    cv.destroyWindow('canvas')
+
+
+@timer.clock
+def calibrate():
+    calib_shape = (16, 16)
+    mm_gap = (4.68, 8.32)  # A2D(5.4, 9.6) 0.075  # Chair(4.68, 8.32) 0.065 -- pixel(72, 128)
+    cvtcoef_mm_pixel = (124.8 + 0.64) / 1920  # A2D: 144.3 / 1920  # Chair: 124.8 / 1920
+    print(f'{calib_shape=} | {mm_gap=} | {cvtcoef_mm_pixel=:.5f} | ', end='')
+
+    calib_img = cv.imread('calib_chair_2nd.bmp', cv.IMREAD_GRAYSCALE)
+    white_img = cv.imread('calib_w.bmp', cv.IMREAD_GRAYSCALE)
+
+    # extract region of interest, in order to draw mesh grid
+    roi = extractROI(white_img, calib_img, calib_shape, visibility=False)
+
+    # Method1: extract points using global threshold
+    w_pnts, b_pnts = extract_pnts_with_blob(roi, calib_shape, False)
+
+    # Method2: extract points using local threshold
+    # w_pnts, b_pnts = extract_pnts_with_mesh(roi, calib_shape, False)
+
+    # transform such as move and rotate black and white points in order to alignment
+    tr_b_pnts, center_b, b_angle = transform_pnts(b_pnts)
+    tr_w_pnts, center_w, w_angle = transform_pnts(w_pnts)
+    center_bias = center_w - center_b
+    tr_w_pnts -= center_bias
+
+    # visualization
+    show_res(roi, tr_b_pnts, tr_w_pnts, flag='UNDIST_H')
+
+    # compute cvtcoef from pixel to mm
+    cvtcoef_pixel_mm = get_cvtcoef_pixel_mm(b_pnts, mm_gap)
+    print(f'{cvtcoef_pixel_mm=:.3f}')
+
+    # compute the deviation between white and black points
+    pnts_deviation = tr_w_pnts - tr_b_pnts
+    cvt_pnts_dev = pnts_deviation / cvtcoef_pixel_mm / cvtcoef_mm_pixel
+    print(f'Max dev: {abs(cvt_pnts_dev).max():.3f}pixels')
+
+    # write json
+    write_calib_data(pnts_deviation / cvtcoef_pixel_mm)
+
     # undistort origin image to generate undistorted image
-    cvt_pnts_dev = pnts_deviation / cvtcoef / cvt_coef_mm_pixel
-    # undistort_image(cvt_pnts_dev)
+    img = cv.imread('./_data/ChairsideCalibrationFig1920_1080.png', cv.IMREAD_GRAYSCALE)
+    undistorting(img, cvt_pnts_dev, flag='UNDIST_H')
 
 
 if __name__ == '__main__':
+    # method1: directly
     calibrate()
 
-    # read xml to remap
-    # fs_x = cv.FileStorage('mapx.xml', flags=cv.FILE_STORAGE_FORMAT_XML)
-    # mapx = fs_x.getNode('mapx').mat()
-    # fs_y = cv.FileStorage('mapy.xml', flags=cv.FILE_STORAGE_FORMAT_XML)
-    # mapy = fs_y.getNode('mapy').mat()
-    # a2d_calib = cv.imread('./_data/A2D_calib.png', cv.IMREAD_GRAYSCALE)
-    # calib_out = cv.remap(a2d_calib, mapx, mapy, cv.INTER_CUBIC, borderMode=cv.BORDER_CONSTANT, borderValue=0)
-    # cv.imwrite('calib_out_2nd.png', calib_out)
+    # method2: calib using xml
+    # calib_img = cv.imread('./_data/ChairsideCalibrationFig1920_1080.png', cv.IMREAD_GRAYSCALE)
+    # calib_using_xml(calib_img)

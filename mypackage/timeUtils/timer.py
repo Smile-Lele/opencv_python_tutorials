@@ -1,4 +1,3 @@
-# 可监控程序运行时间
 import time
 
 
@@ -7,7 +6,7 @@ def clock(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
-        print("共耗时: %s秒" % round(end_time - start_time, 2))
+        print(f'Elapsed time: {func.__name__}() - {round(end_time - start_time, 2)}s')
         return result
 
     return wrapper
