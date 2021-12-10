@@ -99,11 +99,11 @@ def draw_calibboard(dsize, mshape):
     r_gap = row // (r - 1)
     c_gap = col // (c - 1)
     y, x = np.mgrid[0:row + 1:r_gap, 0:col + 1:c_gap].astype(np.float32)
-    x[:, 0] = x[:, 0] + 5.5
-    x[:, -1] = x[:, -1] - 5.5
+    x[:, 0] = x[:, 0] + 6
+    x[:, -1] = x[:, -1] - 6
 
-    y[0, :] = y[0, :] + 5.5
-    y[-1, :] = y[-1, :] - 5.5
+    y[0, :] = y[0, :] + 6
+    y[-1, :] = y[-1, :] - 6
 
     pnts = np.stack([x, y], axis=2).reshape(-1, 2)
 

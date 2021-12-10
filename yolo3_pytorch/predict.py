@@ -19,7 +19,7 @@ if __name__ == "__main__":
     #   'video'表示视频检测
     #   'fps'表示测试fps
     #-------------------------------------------------------------------------#
-    mode = "predict"
+    mode = "video"
     #-------------------------------------------------------------------------#
     #   video_path用于指定视频的路径，当video_path=0时表示检测摄像头
     #   video_save_path表示视频保存的路径，当video_save_path=""时表示不保存
@@ -55,8 +55,13 @@ if __name__ == "__main__":
 
     elif mode == "video":
         capture=cv2.VideoCapture(video_path)
+        capture.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
+        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        capture.set(cv2.CAP_PROP_FPS, 60)
+        capture.set(cv2.CAP_PROP_EXPOSURE, -7)
+        capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         if video_save_path!="":
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
             size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
             out = cv2.VideoWriter(video_save_path, fourcc, video_fps, size)
 

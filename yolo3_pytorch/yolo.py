@@ -23,10 +23,10 @@ from utils.utils import (DecodeBox, letterbox_image, non_max_suppression,
 # --------------------------------------------#
 class YOLO(object):
     _defaults = {
-        "model_path": 'model_data/yolo_weights.pth',
-        "anchors_path": 'model_data/yolo_anchors.txt',
-        "classes_path": 'model_data/new_classes.txt',
-        "model_image_size": (416, 416, 3),
+        "model_path": './model_data/yolo_weights.pth',
+        "anchors_path": './model_data/yolo_anchors.txt',
+        "classes_path": './model_data/coco_classes.txt',
+        "model_image_size": (255, 255, 3),
         "confidence": 0.5,
         "iou": 0.3,
         "cuda": True,

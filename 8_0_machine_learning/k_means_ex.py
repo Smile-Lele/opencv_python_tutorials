@@ -40,12 +40,13 @@ def remove_anomaly_kmeans(data):
 
     target_data = data[valid_region]
     retpivot = np.mean(target_data)
-    print(target_data)
+    # print(target_data)
     return retpivot, target_data
 
 
 if __name__ == '__main__':
     data = rj.read('temp_list_for_img.json')
+
     data_size = len(data)
     for d in data[0:data_size:5]:
         retpivot, target_data = remove_anomaly_kmeans(d)

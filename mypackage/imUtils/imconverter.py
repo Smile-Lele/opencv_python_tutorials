@@ -4,6 +4,10 @@ import cv2 as cv
 import numpy as np
 
 
+def imread_ex(filename, flags):
+    return cv.imdecode(np.fromfile(filename, dtype=np.uint8), flags)
+
+
 def img_to_mat(img, mshape):
     """
     The function will convert image to matrix, each region of which is
@@ -12,19 +16,13 @@ def img_to_mat(img, mshape):
     :param mshape: it is a tuple (row, col)
     :return: matrix(row, col)
     """
-    if len(img.shape) == 3 and img.shape[2] == 3:
+    if img is not None and len(img.shape) == 3 and img.depth == 3:
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-    imrows, imcols = img.shape[:2]
-    matrows, matcols = mshape
-    r_step = imrows // matrows
-    c_step = imcols // matcols
-    ceil_counter = np.ones((imrows, imcols))
-    ceil_add = np.add.reduceat(np.add.reduceat(img, np.arange(0, img.shape[0], r_step), axis=0),
-                               np.arange(0, img.shape[1], c_step), axis=1)
-    ceil_nums = np.add.reduceat(np.add.reduceat(ceil_counter, np.arange(0, ceil_counter.shape[0], r_step), axis=0),
-                                np.arange(0, ceil_counter.shape[1], c_step), axis=1)
-    mat = np.divide(ceil_add, ceil_nums).astype(np.uint8)
+    mrows, mcols = mshape
+    ceils = [np.array_split(row, mcols, axis=1) for row in np.array_split(img, mrows, axis=0)]
+    means = [np.mean(ceil) for row_img in ceils for ceil in row_img]
+    mat = np.array(means).reshape(mshape)
 
     # print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
     return mat
@@ -38,23 +36,23 @@ def resize_ex(src: (np.uint8, np.float32), dsize):
     :param dsize:
     :return:
     """
-    print(f'resize: \nsrc{src.shape} -> dst:{dsize}')
-    inter_type = [cv.INTER_CUBIC, cv.INTER_AREA][src.size > np.cumprod(dsize).max()]
+    # print(f'resize: \nsrc{src.shape} -> dst:{dsize}')
+    inter_type = [cv.INTER_CUBIC, cv.INTER_AREA][src.size > dsize[0] * dsize[1]]
     dst = cv.resize(src, tuple(reversed(dsize)), interpolation=inter_type)
     return dst
 
 
-def resize_for_display(img, screen_size=(1920*4/5, 1080*4/5)):
+def resize_for_display(img, win_size=(1920 * 4 / 5, 1080 * 4 / 5)):
     """
-    The method is to make image to fit window size in the screen while displaying
+    The method is to make image to fit window size in the win while displaying
     :param img:
-    :param screen_size:
+    :param win_size:
     :return:
     """
     row, col = img.shape[:2]
-    screen_c, screen_r = screen_size
-    row_ratio = screen_r / row
-    col_ratio = screen_c / col
+    win_c, win_r = win_size
+    row_ratio = win_r / row
+    col_ratio = win_c / col
     scale_ratio = row_ratio if row_ratio <= col_ratio else col_ratio
     if scale_ratio == 1:
         return img
@@ -64,54 +62,36 @@ def resize_for_display(img, screen_size=(1920*4/5, 1080*4/5)):
         return img
 
 
-def gen_mask(src):
+def img_to_mask(src):
     """
     :param src:
     :return:
     """
     # create mask
-    mask = np.zeros(src.shape, dtype=np.float32)
+    mask = np.zeros_like(src, dtype=np.float32)
     mask.fill(255)
-
-    min_gray = np.min(src)
-    scales = np.divide(src, min_gray)
-    mask = np.round(np.divide(mask, scales)).astype(dtype=np.uint8)
+    min_ = src.min() if src.min() != 0 else src.min() + 1
+    mask = mask / (src / min_)
     return mask
 
 
-def masking(src: np.uint8, mask: np.uint8):
+def bitwise_mask(src, mask):
     """
-    TODO: write description
+    The method is to adjust the grayscale of each pixels in source image.
     :param mask:
     :param src:
     :return:
     """
-    scales = np.divide(mask, 255)
-    image = np.round(np.multiply(src, scales, dtype=np.float32)).astype(dtype=np.uint8)
-    image = scaleAbs_ex(image, 255)
-    return image
+    if mask.size < src.size:
+        mask = cv.resize(mask, (src.shape[1], src.shape[0]), interpolation=cv.INTER_AREA)
+
+    masked_img = cv.convertScaleAbs(src * (mask / 255))
+    return masked_img
 
 
 def scaleAbs_ex(src, maxVal):
     dst = cv.convertScaleAbs(src, alpha=maxVal / src.max())
     return dst
-
-
-def evaluating(mat):
-    """
-    TODO: write description
-    :param mat:
-    :return:
-    """
-    max_ = mat.max()
-    min_ = mat.min()
-    # namean_ = np.average(mat)
-    range_ = max_ - min_
-    mean, stddev = cv.meanStdDev(mat)
-
-    print(f'evaluate: μ:{mean[0, 0]:.2f} | σ:{stddev[0, 0]:.2f} | range:{range_}')
-
-    return range_
 
 
 def remap_ex(img, mapx, mapy):
@@ -120,3 +100,9 @@ def remap_ex(img, mapx, mapy):
     mapy = mapy.reshape(row, col).astype(np.float32)
     new_img = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
     return new_img
+
+
+def cvtColor_ex(img):
+    if len(img.shape) == 3 and len(img.shape[-1] == 3):
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    return img

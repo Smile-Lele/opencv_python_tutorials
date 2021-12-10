@@ -113,6 +113,8 @@ def grab(cap, retFrames=0, record=False, visualized=True):
 def main():
     device_id = int(input('device='))
     cap = cv.VideoCapture(device_id, cv.CAP_DSHOW)
+    if cap is None:
+        raise NotImplementedError()
     set_params(cap, 60, 7)
     get_params(cap)
     imgs = grab(cap, 0, record=True, visualized=True)

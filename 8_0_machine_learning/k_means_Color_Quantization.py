@@ -17,7 +17,6 @@ Z = np.float32(Z)
 criteria = (cv.TERM_CRITERIA_MAX_ITER + cv.TERM_CRITERIA_EPS, 100, 1.0)
 K = 2
 ret, label, center = cv.kmeans(Z, K, None, criteria, 10, cv.KMEANS_RANDOM_CENTERS)
-# 现在将数据转化为uint8, 并绘制原图像
 
 center = np.uint8(center)
 res = center[label.flatten()]

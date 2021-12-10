@@ -1,7 +1,4 @@
 # coding:utf-8
-import glob
-import os
-import random
 from concurrent import futures
 from functools import partial
 
@@ -9,10 +6,6 @@ import cv2 as cv
 import numpy as np
 import tqdm
 from scipy import signal
-
-from calib_lib.cam_undistort import undistorting
-from myutils import ext_json
-from myutils import imconverter as imcvt
 
 
 def otsu_threshold(img, min_thre=0, max_thre=255, offset=0, inv=False, visibility=False):
@@ -143,6 +136,20 @@ def is_grayscale_available(image):
     return 0
 
 
+def evaluating(mat):
+    """
+    TODO: write description
+    :param mat:
+    :return:
+    """
+    range_ = np.ptp(mat)
+    mean, stddev = cv.meanStdDev(mat)
+
+    print(f'evaluate: μ:{mean[0, 0]:.2f} | σ:{stddev[0, 0]:.2f} | range:{range_}')
+
+    return range_
+
+
 def remove_anomaly_gaussian(imgs):
     """
     This function is to remove less anomaly images
@@ -214,3 +221,40 @@ def remove_anomaly_ransac(imgs, sigma):
     print(f'total: {len(imgs)}, valid: {len(valid_imgs)}')
 
     return valid_imgs
+
+
+def inter_linear_with_index(dsize, r_idx, c_idx, vals):
+    canvas = np.zeros(dsize, np.float32)
+    for r in range(len(r_idx)):
+        head_step = 0
+        for c in range(len(c_idx) - 1):
+            canvas[r_idx[r], c_idx[c]:c_idx[c + 1] + 1], step = np.linspace(vals[r, c], vals[r, c + 1],
+                                                                            num=1 + c_idx[c + 1] - c_idx[c],
+                                                                            retstep=True)
+            if c == 0:
+                head_step = step
+
+            if c == len(c_idx) - 2:
+                tail_step = step
+                canvas[r_idx[r], :c_idx[0]] = np.array(
+                    list(reversed([vals[r, 0] - (n + 1) * head_step for n in range(c_idx[0])])))
+                canvas[r_idx[r], c_idx[c + 1] + 1:] = np.array(
+                    [vals[r, c + 1] + (n + 1) * tail_step for n in range(dsize[1] - c_idx[c + 1] - 1)])
+
+    for c in range(dsize[1]):
+        head_step = 0
+        for r in range(len(r_idx) - 1):
+            canvas[r_idx[r]:r_idx[r + 1] + 1, c], step = np.linspace(canvas[r_idx[r], c], canvas[r_idx[r+1], c],
+                                                                            num=1 + r_idx[r + 1] - r_idx[r],
+                                                                            retstep=True)
+            if r == 0:
+                head_step = step
+            if r == len(r_idx) - 2:
+                tail_step = step
+                canvas[:r_idx[0], c] = np.array(
+                    list(reversed([canvas[r_idx[0], c] - (n + 1) * head_step for n in range(r_idx[0])])))
+                canvas[r_idx[r+1]+1:, c] = np.array(
+                    [canvas[r_idx[r + 1], c] + (n + 1) * tail_step for n in range(dsize[0] - r_idx[r + 1] - 1)])
+
+
+    print(canvas)

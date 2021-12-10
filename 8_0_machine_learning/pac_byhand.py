@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
 from sklearn import decomposition
-from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from pandas.core.frame import DataFrame
