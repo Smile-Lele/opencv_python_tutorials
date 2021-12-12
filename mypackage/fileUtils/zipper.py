@@ -1,10 +1,9 @@
 import glob
 import os
-import time
 import zipfile
 from concurrent import futures
-import pyminizip
 
+import pyminizip
 import tqdm
 
 

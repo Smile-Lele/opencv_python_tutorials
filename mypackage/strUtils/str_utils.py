@@ -14,7 +14,7 @@ def split_dir(file):
     return dir, fname_ext, fname
 
 
-def check_make_path(data_dir):
+def check_make_dir(data_dir):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
