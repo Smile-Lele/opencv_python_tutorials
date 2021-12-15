@@ -1,6 +1,4 @@
 
-Z
-*6_video_analysis/cap_video_with_threads.py,3/1/31e2f55b3b47d1839062cb03c2ca61282bf5ef0e
 Y
 )4_image_processing_in_opencv/watershed.py,d/a/da61c84eef43d629885baee3f24a82afa3810bba
 P
@@ -46,3 +44,17 @@ P
  8_0_machine_learning/delaunay.py,7/7/775f671564867f54408e5386e16520b8264fe5df
 J
 mypackage/timeUtils/fps.py,c/1/c11784855ea40abbe68e6c6565879e63992e7cb3
+U
+%mypackage/fileUtils/read_write_ini.py,9/4/94b3ff2b765937b0d1b28453178da0f2910cbe74
+V
+&mypackage/fileUtils/read_write_json.py,7/c/7c719c3a7c0b0c3790c932b7a4f42c210f58966e
+W
+'mypackage/fileUtils/read_write_table.py,d/9/d94697e532cefbe3f56c36013246488f6db4f09c
+Y
+)mypackage/fileUtils/read_write_ndarray.py,9/1/9118cfe9fec47388019e73c5826510d20d5c6b80
+U
+%mypackage/fileUtils/read_write_xml.py,2/1/21c1a720379404cb333891d41065dc0a5ae5c2c9
+M
+mypackage/fileUtils/zipper.py,f/b/fb2398f36c752f29e4d3925623eaaef69e69c937
+Z
+*mypackage/fileUtils/read_write_database.py,0/3/0342b21675367ae7ffe731790ff2ab188164bb46
