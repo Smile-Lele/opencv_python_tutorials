@@ -14,19 +14,19 @@ def main():
     if not file:
         raise FileNotFoundError('file not found')
 
-    cap = cv.VideoCapture(file)
+    # cap = cv.VideoCapture(file)
 
     # use UVC camera to capture
-    # cap = cv.VideoCapture(0, cv.CAP_DSHOW)
-    # ret = [cap.set(cv.CAP_PROP_EXPOSURE, 8 - 14),
-    #        cap.set(cv.CAP_PROP_FPS, 120),
-    #        cap.set(cv.CAP_PROP_GAMMA, 100),
-    #        cap.set(cv.CAP_PROP_GAIN, 0),
-    #        cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280),
-    #        cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720),
-    #        cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))]
-    # if not ret:
-    #     raise ValueError(f'fail to set params:{ret}')
+    cap = cv.VideoCapture(0, cv.CAP_ANY)
+    ret = [cap.set(cv.CAP_PROP_EXPOSURE, 11 - 14),
+           cap.set(cv.CAP_PROP_FPS, 60),
+           cap.set(cv.CAP_PROP_GAMMA, 100),
+           cap.set(cv.CAP_PROP_GAIN, 100),
+           cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280),
+           cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720),
+           cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))]
+    if not ret:
+        raise ValueError(f'fail to set params:{ret}')
 
     _, init_frame = cap.read()
     box = cv.selectROI('frame', init_frame, fromCenter=False, showCrosshair=True)

@@ -12,11 +12,11 @@ Basic Image Utilities
 
 
 def isColor(img):
-    return img.ndim == 3 and img.depth == 3
+    return img.ndim == 3 and img.shape[-1] == 3
 
 
 def imread_ex(filename, flags):
-    return cv.imdecode(np.fromfile(filename, dtype=cv.CV_8U), flags)
+    return cv.imdecode(np.fromfile(filename, dtype=np.uint8), flags)
 
 
 def img2Mat(img, mshape):
@@ -39,24 +39,31 @@ def img2Mat(img, mshape):
     return mat
 
 
-def img2Mask(src):
-    """
-    :param src:
-    :return:
-    """
-    # create mask
-    mask = np.zeros_like(src, dtype=cv.CV_32FC1)
-    mask.fill(255)
-    min_ = src.min() if src.min() != 0 else src.min() + 1
-    mask = mask / (src / min_)
+def mat2Mask(mat):
+    if isColor(mat):
+        mat = cvtColor2Gray(mat)
+    mask = np.ones_like(mat, np.float32) * 255
+    min_ = mat.min() + 1 if mat.min() == 0 else mat.min()
+    mask /= (mat / min_)
     return mask
 
 
-def mat2GridImg(src: (cv.CV_8UC1, cv.CV_32FC1), dsize):
+def bitwise_mask(src, mask):
+    """
+    The method is to adjust the grayscale of each pixels in source image.
+    :param mask:
+    :param src:
+    :return:
+    """
+    assert src.size == mask.size, f'{src.size=} != {mask.size=}'
+    return cv.convertScaleAbs(src * (mask / 255))
+
+
+def mat2GridImg(src: (np.uint8, np.float32), dsize):
     return cv.resize(src, tuple(reversed(dsize)), interpolation=cv.INTER_AREA)
 
 
-def resize_ex(src: (cv.CV_8UC1, cv.CV_32FC1), dsize):
+def resize_ex(src: (np.uint8, np.float32), dsize):
     """
     This is a extension of resize
     :param src:
@@ -67,17 +74,6 @@ def resize_ex(src: (cv.CV_8UC1, cv.CV_32FC1), dsize):
     inter_type = [cv.INTER_CUBIC, cv.INTER_AREA][src.size > dsize[0] * dsize[1]]
     dst = cv.resize(src, tuple(reversed(dsize)), interpolation=inter_type)
     return dst
-
-
-def bitwise_mask(src, mask):
-    """
-    The method is to adjust the grayscale of each pixels in source image.
-    :param mask:
-    :param src:
-    :return:
-    """
-    assert src.size() == mask.size(), f'{src.size()=} != {mask.size()=}'
-    return cv.convertScaleAbs(src * (mask / 255))
 
 
 def scaleAbs_ex(src, maxVal):
@@ -93,7 +89,7 @@ def remap_ex(img, mapx, mapy):
 
 
 def cvtColor2Gray(img):
-    assert img, 'img is None'
+    assert img is not None, 'img is None'
     if isColor(img):
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     return img
@@ -343,6 +339,33 @@ Image Template
 """
 
 
+def create_canvas(dsize):
+    """
+    The function creates canvas with dsize, grayscale per pixel is 0
+    :param dsize: img(row, col)
+    :return: empty or black image
+    """
+    canvas = np.zeros(dsize, np.uint8)
+    info = 'canvas: \nshape:{} \ndtype:{}\n'
+    info = info.format(canvas.shape, canvas.dtype)
+    print(info)
+    return canvas
+
+
+def create_whiteboard(dsize):
+    """
+    The function creates white board with dsize, grayscale per pixel is 255
+    :param dsize: image(row, col)
+    :return: white image
+    """
+    canvas = np.zeros(dsize, np.uint8)
+    canvas.fill(255)
+    info = 'whiteboard: \nshape:{} \ndtype:{}\n'
+    info = info.format(canvas.shape, canvas.dtype)
+    print(info)
+    return canvas
+
+
 def create_chessboard(mshape, pixels):
     """
     The function is to create a chessboard.
@@ -394,30 +417,18 @@ def draw_mesh(image, mshape):
     return img
 
 
-def create_canvas(dsize):
-    """
-    The function creates canvas with dsize, grayscale per pixel is 0
-    :param dsize: img(row, col)
-    :return: empty or black image
-    """
-    canvas = np.zeros(dsize, np.uint8)
-    info = 'canvas: \nshape:{} \ndtype:{}\n'
-    info = info.format(canvas.shape, canvas.dtype)
-    print(info)
+def draw_border(dsize, borderthickness=10):
+    canvas = create_whiteboard(dsize)
+    canvas[borderthickness:-borderthickness, borderthickness:-borderthickness] = 0
     return canvas
 
 
-def create_whiteboard(dsize):
-    """
-    The function creates white board with dsize, grayscale per pixel is 255
-    :param dsize: image(row, col)
-    :return: white image
-    """
-    canvas = np.zeros(dsize, np.uint8)
-    canvas.fill(255)
-    info = 'whiteboard: \nshape:{} \ndtype:{}\n'
-    info = info.format(canvas.shape, canvas.dtype)
-    print(info)
+def draw_cross(dsize, linelength=50, linethickness=1):
+    canvas = create_canvas(dsize)
+    row, col = dsize
+    cx, cy = col // 2, row // 2
+    cv.line(canvas, (cx - linelength // 2, cy), (cx + linelength // 2, cy), 255, linethickness)
+    cv.line(canvas, (cx, cy - linelength // 2), (cx, cy + linelength // 2), 255, linethickness)
     return canvas
 
 
