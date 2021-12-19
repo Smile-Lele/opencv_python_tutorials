@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def write_table(data, file, header=None, sortby=None, ascend=None):
+def write(data, file, header=None, sortby=None, ascend=None):
     """
     The function is to make it easier to save excel or csv files
     :param data: data is list of 2D or 1D
@@ -35,7 +35,7 @@ def write_table(data, file, header=None, sortby=None, ascend=None):
             df.to_excel(writer, sheet_name='Sheet1', index=False, encoding='utf8')
 
 
-def read_table(file, userows: str = None, usecols: str = None):
+def read(file, userows: str = None, usecols: str = None):
     df = pd.DataFrame()
 
     if '.csv' in file:
@@ -62,7 +62,7 @@ def read_table(file, userows: str = None, usecols: str = None):
 
 
 def test():
-    df = read_table('4k.xlsx', userows='3:12', usecols='B:U')
+    df = read('4k.xlsx', userows='3:12', usecols='B:U')
     print(np.array(df))
 
 

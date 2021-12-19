@@ -9,10 +9,8 @@ import numpy as np
 import pandas as pd
 import tqdm
 
-from mypackage.fileUtils import zipper
-from mypackage.imUtils import icv 
-from mypackage.strUtils import str_utils
-from mypackage.timeUtils import timer
+from mypackage.fileUtils import rw_zip
+from mypackage import icv, str_utils, timer
 
 COLORS = np.random.randint(64, 255, size=(100, 3)).tolist()
 
@@ -228,7 +226,7 @@ def process_single_model(file):
     str_utils.check_make_dir(data_dir)
 
     # unzip
-    zipper.decompress_ultm(file, data_dir)
+    rw_zip.decompress_ultm(file, data_dir)
 
     # process
     res = process_images_with_process(data_dir)
@@ -248,7 +246,7 @@ if __name__ == '__main__':
 
     path = 'D:/MyData/Model/Model'
     # path = os.getcwd()
-    process_models(path)
+    # process_models(path)
 
     # for test one image
     # process_single_model(os.getcwd())

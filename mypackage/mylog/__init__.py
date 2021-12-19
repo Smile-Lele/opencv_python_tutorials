@@ -1,3 +1,3 @@
 # coding: utf-8
 
-from .log import logger
+from .mylogger import ILogger

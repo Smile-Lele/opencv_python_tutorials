@@ -1,0 +1,1 @@
+from .myfile import IFile

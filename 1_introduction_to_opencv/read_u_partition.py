@@ -24,7 +24,7 @@ def copy_files(srcpath, dstpath, filter):
     if not os.path.exists(dstpath):
         os.makedirs(dstpath)
 
-    files = [os.path.join(root, file) for root, subdic, files in os.walk(srcpath) for file in files if
+    files = [os.path.join(root, file) for root, subdir, files in os.walk(srcpath) for file in files if
              os.path.splitext(file)[-1] in filter]
 
     with futures.ThreadPoolExecutor(max_workers=len(files)) as executor:

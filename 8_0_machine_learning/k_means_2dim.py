@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv
-from mypackage.fileUtils import read_write_json as rj
+from mypackage.fileUtils import rw_json as rj
 import numpy as np
 from matplotlib import pyplot as plt
 

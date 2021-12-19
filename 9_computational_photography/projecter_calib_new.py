@@ -6,7 +6,7 @@ import numpy as np
 from mypackage.imUtils import impreprocessing as impre
 from mypackage.imUtils import imtemplate
 from functools import partial
-from mypackage.fileUtils import read_write_json
+from mypackage.fileUtils import rw_json
 
 
 def find_four_corners(imsize, pnts):
@@ -524,7 +524,7 @@ def calibrate():
     calib_data['col'] = 16
     calib_data['row'] = 16
     calib_data['num'] = 256
-    read_write_json.write('calibrate.json', calib_data)
+    rw_json.write('calibrate.json', calib_data)
 
     # undistort origin image to generate undistorted image
     # cvt_pnts_dev = pnts_deviation / cvtcoef / cvt_coef_mm_pixel
