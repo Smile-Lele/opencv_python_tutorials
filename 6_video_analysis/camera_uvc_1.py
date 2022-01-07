@@ -5,9 +5,9 @@ import multiprocessing
 import cv2 as cv
 
 
-def set_params(cap, fps=18, exposure=7):
+def set_params(cap, fps=60, exposure=-6):
     # TODO: worning fourcc must be placed in the end of params settting, coz OPENCV bug
-    ret = [cap.set(cv.CAP_PROP_EXPOSURE, exposure - 14),
+    ret = [cap.set(cv.CAP_PROP_EXPOSURE, exposure),
            cap.set(cv.CAP_PROP_FPS, fps),
            cap.set(cv.CAP_PROP_GAMMA, 100),
            cap.set(cv.CAP_PROP_GAIN, 0),
@@ -115,7 +115,7 @@ def main():
     cap = cv.VideoCapture(device_id, cv.CAP_DSHOW)
     if cap is None:
         raise NotImplementedError()
-    set_params(cap, 60, 7)
+    set_params(cap, 60, -6)
     get_params(cap)
     imgs = grab(cap, 0, record=True, visualized=True)
 

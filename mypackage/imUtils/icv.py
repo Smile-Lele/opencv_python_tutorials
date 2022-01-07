@@ -5,6 +5,7 @@ from functools import partial
 import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
+from mypackage.strUtils import str_utils
 
 """
 Basic Image Utilities
@@ -17,6 +18,11 @@ def isColor(img):
 
 def imread_ex(filename, flags):
     return cv.imdecode(np.fromfile(filename, dtype=np.uint8), flags)
+
+
+def imwrite_ex(file, img):
+    ext = str_utils.split_dir(file)[-1]
+    cv.imencode(ext, img)[1].tofile(file)
 
 
 def img2Mat(img, mshape):
