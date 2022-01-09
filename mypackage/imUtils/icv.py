@@ -34,7 +34,7 @@ def img2Mat(img, mshape):
     :return: matrix(row, col)
     """
 
-    cvtColor2Gray(img)
+    cvtBGR2Gray(img)
 
     mrows, mcols = mshape
     ceils = [np.array_split(row, mcols, axis=1) for row in np.array_split(img, mrows, axis=0)]
@@ -47,7 +47,7 @@ def img2Mat(img, mshape):
 
 def mat2Mask(mat):
     if isColor(mat):
-        mat = cvtColor2Gray(mat)
+        mat = cvtBGR2Gray(mat)
     mask = np.ones_like(mat, np.float32) * 255
     min_ = mat.min() + 1 if mat.min() == 0 else mat.min()
     mask /= (mat / min_)
@@ -94,10 +94,17 @@ def remap_ex(img, mapx, mapy):
     return dst
 
 
-def cvtColor2Gray(img):
+def cvtBGR2Gray(img):
     assert img is not None, 'img is None'
     if isColor(img):
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    return img
+
+
+def cvtGray2BGR(img):
+    assert img is not None, 'img is None'
+    if not isColor(img):
+        img = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
     return img
 
 

@@ -15,7 +15,7 @@ class Test(TestCase):
         self.color = cv.cvtColor(self.gray, cv.COLOR_GRAY2BGR)
 
     def tearDown(self):
-        pass
+        print(f'well done!')
 
     def test_is_color(self):
         self.assertFalse(isColor(self.gray))
@@ -24,7 +24,7 @@ class Test(TestCase):
     def test_img2mat(self):
         realValue = img2Mat(self.color, self.mshape)
         expectedValue = self.mat
-        self.assertTrue((realValue == expectedValue).all())
+        # self.assertTrue((realValue == expectedValue).all())
         np.testing.assert_allclose(realValue, expectedValue)
 
     def test_mat2grid_img(self):
@@ -32,10 +32,16 @@ class Test(TestCase):
         expectedValue = self.gray
         np.testing.assert_allclose(realValue, expectedValue)
 
-    def test_cvt_color2gray(self):
-        realValue = cvtColor2Gray(self.color)
+    def test_cvt_bgr2gray(self):
+        realValue = cvtBGR2Gray(self.color)
         expectedValue = self.gray
         np.testing.assert_allclose(realValue, expectedValue)
+
+    def test_cvt_gray2bgr(self):
+        realValue = self.color
+        expectedValue = cvtGray2BGR(self.gray)
+        np.testing.assert_allclose(realValue, expectedValue)
+
 
     def test_concat_filter(self):
         realValue = concatFilter([self.color, self.color, self.color])

@@ -1,12 +1,14 @@
 import numpy as np
 
 
-def read(file):
-    with np.load(file) as npz:
-        data = npz['data']
+class Ndarray_:
+    def __init__(self, path):
+        self.path = path
 
-    return data
+    def read(self):
+        with np.load(self.path) as npz:
+            data = npz['data']
+        return data
 
-
-def write(file, data):
-    np.savez(file, data=data)
+    def write(self, data):
+        np.savez(self.path, data=data)
