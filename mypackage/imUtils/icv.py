@@ -268,6 +268,34 @@ Image Filter Algorithm:
 """
 
 
+def convertPloyMatrix(x, degrees):
+    X = np.asarray([np.power(x, c - 1) for c in range(degrees + 1, 0, -1)]).T
+    return X
+
+
+def polyfit(pnts, degrees=1):
+    # X(n, m).T * K(n, 1) = Y(m, 1)
+    m = len(pnts)
+    n = degrees + 1
+    assert m > n, f'{m=} should be greater than {n=}'
+
+    # prepare dataset
+    pnts = np.asarray(pnts).reshape(-1, 2)
+    x = pnts[:, 0]
+    y = pnts[:, 1]
+    X = convertPloyMatrix(x, degrees)
+    Y = np.asarray(y).reshape(-1, 1)
+
+    # Least Square
+    # K = np.linalg.inv(X.T @ X) @ X.T @ Y
+    _, K = cv.solve(X, Y, flags=cv.DECOMP_QR)
+    return K
+
+
+def polyfunc(X, K):
+    return X @ K
+
+
 def denoise(image):
     image = cv.fastNlMeansDenoising(image, 5, 7, 21)
     image = cv.edgePreservingFilter(image, sigma_s=25, sigma_r=0.3, flags=cv.RECURS_FILTER)
