@@ -1,3 +1,4 @@
+import itertools
 import math
 from concurrent import futures
 from functools import partial
@@ -5,6 +6,7 @@ from functools import partial
 import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
+
 from mypackage.strUtils import str_utils
 
 """
@@ -141,8 +143,8 @@ def imgs2Mats_helper(img, mshape, index):
 def imgs2Mats(imgs, mshape):
     to_do_list = list()
     with futures.ThreadPoolExecutor(max_workers=len(imgs)) as executor:
-        for id, img in enumerate(imgs):
-            future = executor.submit(imgs2Mats_helper, img, mshape, id)
+        for idx, img in enumerate(imgs):
+            future = executor.submit(imgs2Mats_helper, img, mshape, idx)
             to_do_list.append(future)
         done_iter = futures.as_completed(to_do_list)
 
@@ -252,15 +254,14 @@ def imshow_ex(img, win_size=(1920 * 4 / 5, 1080 * 4 / 5)):
     row_ratio = win_r / row
     col_ratio = win_c / col
     scale_ratio = row_ratio if row_ratio <= col_ratio else col_ratio
-    if scale_ratio == 1:
-        return img
-    else:
+    viz_img = img
+    if scale_ratio != 1:
         INTERPOLATION = cv.INTER_AREA if scale_ratio < 1 else cv.INTER_CUBIC
         img = cv.resize(img, None, fx=scale_ratio, fy=scale_ratio, interpolation=INTERPOLATION)
-        return img
-    cv.imshow('img_viz', img)
+        viz_img = img
+    cv.imshow('viz_img', viz_img)
     cv.waitKey()
-    cv.destroyWindow('img_viz')
+    cv.destroyWindow('viz_img')
 
 
 """
@@ -268,8 +269,39 @@ Image Filter Algorithm:
 """
 
 
+def fitLineAngle(pnts):
+    line = cv.fitLine(pnts, cv.DIST_L2, 0, 0.01, 0.01)
+    k = line[0] / line[1]
+    sin_k = - k / np.sqrt(1 + k * k)
+    angle = np.rad2deg(np.arcsin(sin_k))
+    # angle = np.rad2deg(np.arctan(k))
+    return angle
+
+
+def fitLineAngle_ex(pnts):
+    pnts_pairs = [pairs for pairs in itertools.combinations(pnts, 2)]
+    pnts_pairs = np.asarray(pnts_pairs)
+    vector = pnts_pairs[:, 0] - pnts_pairs[:, 1]
+    mags, angles = cv.cartToPolar(vector[:, 0], vector[:, 1], angleInDegrees=True)
+    angle = np.mean(angles) - 270  # rotate image coordinates to world coordinates
+    return angle
+
+
+def fit2dMatrixAngleHelper(pnts, func):
+    row, col = pnts.shape[:2]
+    angle_col = np.mean([func(pnts[:, c]) for c in range(col)])
+    angle_row = np.mean([func(pnts[r, :]) for r in range(row)]) + 90
+    angle = (angle_col + angle_row) / 2
+    return angle
+
+
+def fit2dMatrixAngle(pnts, algorithmType='polar'):
+    return fit2dMatrixAngleHelper(pnts, fitLineAngle_ex) if algorithmType == 'polar' \
+        else fit2dMatrixAngleHelper(pnts, fitLineAngle)
+
+
 def convertPloyMatrix(x, degrees):
-    X = np.asarray([np.power(x, c - 1) for c in range(degrees + 1, 0, -1)]).T
+    X = np.asarray([np.power(x, c) for c in range(degrees, -1, -1)]).T
     return X
 
 
@@ -294,6 +326,24 @@ def polyfit(pnts, degrees=1):
 
 def polyfunc(X, K):
     return X @ K
+
+
+def solveHelper(coeffs, func) -> list:
+    return func(coeffs)[1].squeeze().tolist()
+
+
+def solve1d_ex(coeffs: list, y):
+    assert len(coeffs) != 0, f'Error {len(coeffs)=}'
+    coeffs = np.float32(coeffs)
+    coeffs[-1] -= y
+    return solveHelper(coeffs, cv.solveCubic) if len(coeffs) == 4 else solveHelper(coeffs[::-1], cv.solvePoly)
+
+
+def filterRoots(roots: list, lo, hi):
+    assert len(roots) != 0, f'Error: {len(roots)=}'
+    if isinstance(roots[0], list) and len(roots[0]) == 2:
+        return [r[0] for r in roots if abs(r[1]) < 1e-8 and lo < r[0] < hi]
+    return list(filter(lambda r: lo < r < hi, roots))
 
 
 def denoise(image):
