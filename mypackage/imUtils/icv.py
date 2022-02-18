@@ -1,5 +1,6 @@
 import itertools
 import math
+import random
 from concurrent import futures
 from functools import partial
 
@@ -22,9 +23,9 @@ def imread_ex(filename, flags):
     return cv.imdecode(np.fromfile(filename, dtype=np.uint8), flags)
 
 
-def imwrite_ex(file, img):
-    ext = str_utils.split_dir(file)[-1]
-    cv.imencode(ext, img)[1].tofile(file)
+def imwrite_ex(filename, img):
+    ext = str_utils.split_dir(filename)[-1]
+    cv.imencode(ext, img)[1].tofile(filename)
 
 
 def img2Mat(img, mshape):
@@ -214,6 +215,29 @@ Image Visualization
 """
 
 
+def drawPoints(points, filename, isSave=False):
+    # copy array using np.array
+    pnts = np.array(points)
+
+    # improve the precise of points
+    thickness = 100
+    pnts *= thickness
+
+    cols, rows = np.int0(pnts[-1, -1] + np.array([2 * thickness, 2 * thickness]))
+    canvas = np.zeros((rows, cols, 3), np.uint8)
+    canvas.fill(255)
+
+    COLORS = np.random.randint(64, 255, size=(100, 3)).tolist()
+    color = random.choice(COLORS)
+
+    pnts = np.int0(pnts).reshape(-1, 2)
+    [cv.circle(canvas, (c[0], c[1]), thickness, color, -1) for c in pnts]
+
+    if isSave:
+        cv.imwrite(filename, canvas)
+    imshow_ex(canvas)
+
+
 def implot_ex(imdict):
     """
     This is an adaptive drawing module
@@ -267,6 +291,14 @@ def imshow_ex(img, win_size=(1920 * 4 / 5, 1080 * 4 / 5)):
 """
 Image Filter Algorithm:
 """
+
+
+def convert_unit(data, unit):
+    if isinstance(data, dict):
+        return {k: v * unit for k, v in data.items()}
+    if isinstance(data, list or tuple):
+        return [d * unit for d in data]
+    return data * unit
 
 
 def fitLineAngle(pnts):
