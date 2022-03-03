@@ -1,5 +1,6 @@
 import itertools
 import math
+import os
 import random
 from concurrent import futures
 from functools import partial
@@ -26,6 +27,13 @@ def imread_ex(filename, flags):
 def imwrite_ex(filename, img):
     ext = str_utils.split_dir(filename)[-1]
     cv.imencode(ext, img)[1].tofile(filename)
+
+
+def imstore(file, img):
+    dir_, fname_ext, fname, _ = str_utils.split_dir(file)
+    data_dir = os.path.join(dir_, 'img')
+    str_utils.check_make_dir(data_dir)
+    cv.imwrite(os.path.join(data_dir, fname_ext), img)
 
 
 def img2Mat(img, mshape):
@@ -130,11 +138,10 @@ def otsuThreshold(img, min_thre=0, max_thre=255, offset=0, inv=False, visibility
     return thre, thre_img
 
 
-def concatFilter(imgs):
-    sum_ = 0
-    for img in imgs:
-        sum_ += img
-    return cv.convertScaleAbs(sum_ / len(imgs))
+def meanFilterOnGray(imgs):
+    src = [cvtBGR2Gray(img) for img in imgs]
+    dst = np.mean(np.dstack(src), axis=2)
+    return cv.convertScaleAbs(dst)
 
 
 def imgs2Mats_helper(img, mshape, index):
@@ -156,6 +163,11 @@ def imgs2Mats(imgs, mshape):
     return mats
 
 
+"""
+Image Evaluation
+"""
+
+
 def maxHistGray(img):
     hist = cv.calcHist([img], [0], mask=None, histSize=[256], ranges=[0, 256])
     hist_list = hist.squeeze().tolist()
@@ -173,6 +185,57 @@ def imClarity(img):
     clarity_lap = cv.Laplacian(img, cv.CV_64F).var()
     clarity_sobel = cv.Sobel(img, cv.CV_64F, 1, 1).var()
     return beta * clarity_lap + (1 - beta) * clarity_sobel
+
+
+def PSNRandMSE(src1, src2):
+    psnr = cv.PSNR(src1, src2)
+    mse = 255 ** 2 / 10 ** (psnr / 10)
+    return psnr, mse
+
+
+def SSIM(src1, src2):
+    """
+    Referance: ”Z. Wang, A. C. Bovik, H. R. Sheikh and E. P. Simoncelli,
+    “Image quality assessment: From error visibility to structural similarity,”
+    IEEE Transactions on Image Processing, vol. 13, no. 4, pp. 600-612, Apr. 2004.”
+    """
+    c1, c2 = 6.5025, 58.5225
+    src1 = np.float32(src1)
+    src2 = np.float32(src2)
+
+    i1_1 = src1 * src1
+    i2_2 = src2 * src2
+    i1_2 = src1 * src2
+
+    mu1 = cv.GaussianBlur(src1, (11, 11), 1.5)
+    mu2 = cv.GaussianBlur(src2, (11, 11), 1.5)
+
+    mu1_1 = mu1 * mu1
+    mu2_2 = mu2 * mu2
+    mu1_2 = mu1 * mu2
+
+    sigma1_1 = cv.GaussianBlur(i1_1, (11, 11), 1.5) - mu1_1
+    sigma2_2 = cv.GaussianBlur(i2_2, (11, 11), 1.5) - mu2_2
+    sigma1_2 = cv.GaussianBlur(i1_2, (11, 11), 1.5) - mu1_2
+
+    t1 = 2 * mu1_2 + c1
+    t2 = 2 * sigma1_2 + c2
+    t3 = t1 * t2
+
+    t1 = mu1_2 + mu2_2 + c1
+    t2 = sigma1_1 + sigma2_2 + c2
+    t1 = t1 * t2
+
+    ssim_map = t3 / t1
+
+    mssim = np.mean(ssim_map)
+
+    return mssim
+
+
+"""
+Image Advance Operation
+"""
 
 
 def linearInterWithIndex(dsize, r_idx, c_idx, vals):
@@ -289,11 +352,11 @@ def imshow_ex(img, win_size=(1920 * 4 / 5, 1080 * 4 / 5)):
 
 
 """
-Image Filter Algorithm:
+Math:
 """
 
 
-def convert_unit(data, unit):
+def cvtUnit(data, unit):
     if isinstance(data, dict):
         return {k: v * unit for k, v in data.items()}
     if isinstance(data, list or tuple):
@@ -376,6 +439,11 @@ def filterRoots(roots: list, lo, hi):
     if isinstance(roots[0], list) and len(roots[0]) == 2:
         return [r[0] for r in roots if abs(r[1]) < 1e-8 and lo < r[0] < hi]
     return list(filter(lambda r: lo < r < hi, roots))
+
+
+"""
+Image Filter Algorithm:
+"""
 
 
 def denoise(image):

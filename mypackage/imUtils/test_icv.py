@@ -1,5 +1,3 @@
-import cv2 as cv
-import numpy as np
 from unittest import TestCase
 
 from mypackage.imUtils.icv import *
@@ -42,10 +40,9 @@ class Test(TestCase):
         expectedValue = cvtGray2BGR(self.gray)
         np.testing.assert_allclose(realValue, expectedValue)
 
-
-    def test_concat_filter(self):
-        realValue = concatFilter([self.color, self.color, self.color])
-        expectedValue = self.color
+    def test_mean_filter_on_gray(self):
+        realValue = meanFilterOnGray([self.gray, self.gray, self.gray])
+        expectedValue = self.gray
         np.testing.assert_allclose(realValue, expectedValue)
 
     def test_mat2mask(self):

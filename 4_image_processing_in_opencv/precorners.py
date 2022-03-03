@@ -2,6 +2,7 @@
 
 import cv2 as cv
 import numpy as np
+from mypackage.imUtils import icv
 
 COLORS = np.random.randint(0, 255, size=(100, 3)).tolist()
 
@@ -25,8 +26,4 @@ corners_img = cv.preCornerDetect(gray, ksize=9, borderType=cv.BORDER_DEFAULT)
 kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
 dilate_img = cv.morphologyEx(corners_img, cv.MORPH_DILATE, kernel=kernel, iterations=2)
 
-dilate_img = cv.resize(dilate_img, None, fx=0.3, fy=0.3, interpolation=cv.INTER_AREA)
-cv.imshow('', minE)
-key = cv.waitKey() & 0XFF
-if key == 27:
-    cv.destroyAllWindows()
+icv.imshow_ex(corners_img)

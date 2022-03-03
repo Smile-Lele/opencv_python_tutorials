@@ -31,7 +31,7 @@ while True:
 
     img = cv.add(frame, mask)
     cv.imshow('frame', img)
-    if cv.waitKey(50) & 0XFF == ord('q'):
+    if cv.waitKey(50) & 0XFF == 27:
         break
 
     pre_frame_gray = frame_gray.copy()

@@ -1,10 +1,10 @@
 import cv2 as cv
 import numpy as np
-from matplotlib import pyplot as plt
-from mypackage.multiplot import multiplot as mplt
+
+from mypackage.imUtils import icv
 
 imdict = dict()
-img = cv.imread('../mydata/captured_white.png', 0)
+img = cv.imread('../mydata/c7.png', 0)
 imdict['img'] = img
 
 rows, cols = img.shape
@@ -43,4 +43,4 @@ img_back_ch1, img_back_ch2 = cv.split(img_back)
 img_back = cv.magnitude(img_back_ch1, img_back_ch2)
 imdict['img_back'] = img_back
 
-mplt.show(imdict)
+icv.implot_ex(imdict)
