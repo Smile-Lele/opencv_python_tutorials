@@ -3,7 +3,6 @@ import time
 
 import cv2 as cv
 import numpy as np
-from mypackage.multiplot import multiplot as mplt
 from numpy import ma
 
 if __name__ == '__main__':
