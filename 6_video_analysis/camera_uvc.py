@@ -78,7 +78,7 @@ def grab(cap, isflip=False):
 
 
 def main():
-    cap = cv.VideoCapture(0, cv.CAP_DSHOW)
+    cap = cv.VideoCapture(0, cv.CAP_ANY)
     if not cap.isOpened():
         raise RuntimeError('device not found')
 
