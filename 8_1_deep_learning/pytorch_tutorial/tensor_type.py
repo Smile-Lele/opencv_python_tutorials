@@ -1,24 +1,28 @@
 import torch
-import numpy as np
 
-if __name__ == '__main__':
-    print(f'cuda is available:{torch.cuda.is_available()}')
-    a = torch.randn(2, 3)
-    print(a, type(a), a.type())
-    print(isinstance(a, torch.FloatTensor))
+print(f'{torch.cuda.is_available()=}')
 
-    print(isinstance(a.cuda(), torch.cuda.FloatTensor))
+# dtype 1
+double_points = torch.ones(10, 2, dtype=torch.double)
+shrot_points = torch.tensor([[1, 3],[3, 5]], dtype=torch.short)
 
-    b = np.random.randn(2, 3)
-    print(b, type(b))
+print(shrot_points.dtype)
+print(double_points.dtype)
 
-    t = torch.tensor([[1.0, 2.9, 5], [2, 6, 7]])
-    print(t, t.type())
-    print(t.shape, t.size(1), t.dim())
+# dtype 2
+double_points = torch.zeros(10, 2).double()
+short_points = torch.tensor([[1, 2], [2, 3]]).short()
+print(short_points.dtype)
+print(double_points.dtype)
 
+#  dtype 3
+double_points = torch.zeros(10, 2).to(torch.double)
+short_points = torch.tensor([[1, 2], [3, 4]]).to(dtype=torch.short)
+print(short_points.dtype)
+print(double_points.dtype)
 
-    # (batch, channel, height, width)
-    a = torch.randn(16, 3, 28, 28)
-    print('size:{}'.format(a.shape))
-    print('dim:{}'.format(a.dim()))
-    print('num:{}'.format(a.numel()))
+# dtype 4
+points = torch.randn(10, 2)
+short_points = points.type(torch.short)
+print(short_points.dtype)
+

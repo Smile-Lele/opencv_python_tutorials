@@ -526,6 +526,155 @@ def remove_anomaly_ransac(imgs, sigma):
 
 
 """
+ROI operator
+"""
+
+class ROI:
+    def __init__(self):
+        self.center = None
+        self.angle = None
+        self.x = None
+        self.y = None
+        self.width = None
+        self.height = None
+        self.mask = None
+        self.perspectiveMtx = None
+
+
+def conv_on_rect(src, kernel):
+    src = cvtBGR2Gray(src)
+    dst = cv.filter2D(src, cv.CV_32FC1, kernel)
+    dst = cv.convertScaleAbs(dst)
+    _, dst = otsuThreshold(dst, visibility=False)
+    return dst
+
+
+def detectRectROI(src):
+    roi = ROI()
+    img = cvtBGR2Gray(src)
+
+    kernel_x = np.array([[3, 0, -3],
+                         [3, 0, -3],
+                         [3, 0, -3]])
+    dx = conv_on_rect(img, kernel_x)
+
+    kernel_y = kernel_x.T
+    dy = conv_on_rect(img, kernel_y)
+
+    concat = dx + dy
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+    concat = cv.morphologyEx(concat, cv.MORPH_DILATE, kernel=kernel, iterations=1)
+
+    # find external contour
+    contours, _ = cv.findContours(concat, cv.RETR_CCOMP, cv.CHAIN_APPROX_TC89_KCOS)
+
+    # sort all contours detected to
+    contours = sorted(contours, key=lambda c: cv.arcLength(c, True), reverse=True)
+
+    # attempt to extract relevantly exact contour
+    cnt = contours[1]
+    epsilon = 0.1 * cv.arcLength(cnt, True)
+    approx = cv.approxPolyDP(cnt, epsilon, True)
+    assert len(approx) == 4, f'approx res:{len(approx)} should be 4'
+
+    # get roi only including useful information without the outside region of edge
+    corners = approx.squeeze()
+    mask = np.zeros(src.shape[:2], np.uint8)
+    mask = cv.drawContours(mask, [np.int32(corners)], 0, 255, -1, cv.LINE_AA)
+    roi.mask = mask
+
+    # compute rotate angle
+    minRect = cv.minAreaRect(cnt)
+    center = minRect[0]
+    min_rect_c_x, min_rect_c_y = center
+    rect_width, rect_height = minRect[1]  # Note: h and w are both irregular, be careful
+    _theta = minRect[2]  # range (0, 90), no negative, but positive angle
+    angle = [_theta, _theta - 90][rect_width < rect_height]
+    roi.angle = angle
+    roi.center = center
+
+    # save roi to file
+    min_rect_h, min_rect_w = sorted(minRect[1])
+    roi.x = round(min_rect_c_x - min_rect_w / 2)
+    roi.y = round(min_rect_c_y - min_rect_h / 2)
+    roi.width = round(min_rect_w)
+    roi.height = round(min_rect_h)
+
+    # project roi to minRect, in order to adjust roi as standard rectangle
+    def cart_to_polar(c):
+        """
+        sort corners by the distance between origin and four points
+        :param c:
+        :return: magnitude, angle
+        """
+        magnitude, angle_ = cv.cartToPolar(int(c[0]), int(c[1]), angleInDegrees=True)
+        return magnitude[0], angle_[0]
+
+    # cart_to_polar = lambda x: cv.cartToPolar(int(x[0]), int(x[1]), angleInDegrees=True)
+
+    corners = sorted(list(corners), key=cart_to_polar)
+    corners = np.float32(corners)
+
+    box_cors = np.int0(cv.boxPoints(minRect))
+    box_cors = sorted(list(box_cors), key=cart_to_polar)
+    box_cors = np.float32(box_cors)
+    perspect_mtx = cv.getPerspectiveTransform(corners, box_cors, cv.DECOMP_LU)
+    roi.perspectiveMtx = perspect_mtx
+
+    """
+    perspect_im = cv.warpPerspective(src, perspect_mtx, (src.shape[1], src.shape[0]))
+    rot_mtx = cv.getRotationMatrix2D(center, angle, scale=1)
+    target = cv.warpAffine(perspect_im, rot_mtx, (src.shape[1], src.shape[0]))    
+    """
+
+    return roi
+
+
+def setRectROI(src, scale, offset_yx, angle):
+    mask = createRectMask(src, scale, offset_yx, angle)
+    return cv.bitwise_and(src, src, mask=mask)
+
+
+def createRectMask(src, scale, offset_yx, angle):
+    frame_shape = np.asarray(src.shape[:2])
+    roi_shape = frame_shape * scale
+
+    # create mask
+    mask = np.zeros(frame_shape, dtype=np.uint8)
+    roi_y, roi_x = np.round((frame_shape - roi_shape) / 2 + offset_yx).astype(np.int32)
+    roi_height, roi_width = np.round(roi_shape).astype(np.int32)
+    roi_x = np.clip(0, frame_shape[1], roi_x)
+    roi_y = np.clip(0, frame_shape[0], roi_y)
+    mask[roi_y:roi_y + roi_height, roi_x:roi_x + roi_width] = 255
+
+    # rotate
+    roi_center = (roi_x + roi_width / 2, roi_y + roi_height / 2)
+    tr_mxt = cv.getRotationMatrix2D(roi_center, angle, scale=1)
+    mask = cv.warpAffine(mask, tr_mxt, (src.shape[1], src.shape[0]))
+
+    return mask
+
+
+def auto_align_center(cap_img, proj_img):
+    """
+    The method is to align the center of camera and ROI
+    :param cap_img: image captured by camera
+    :param proj_img: image needed to project
+    :return:
+    """
+    cap_shape = np.asarray(cap_img.shape[:2])
+    cy, cx = cap_shape / 2
+    roi_params = detectRectROI(cap_img)
+    roi_cx, roi_cy = roi_params.center
+    cap_center_diff = np.asarray([cy - roi_cy, cx - roi_cx])
+
+    # TODO:
+    ratio = 0
+    proj_center_diff = cap_center_diff * ratio
+    return setRectROI(proj_img, 1 / 6, proj_center_diff, roi_params.angle)
+
+
+"""
 Image Template
 """
 
