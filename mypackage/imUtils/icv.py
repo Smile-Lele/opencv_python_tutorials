@@ -29,11 +29,10 @@ def imwrite_ex(filename, img):
     cv.imencode(ext, img)[1].tofile(filename)
 
 
-def imstore(file, img):
-    dir_, fname_ext, fname, _ = str_utils.split_dir(file)
-    data_dir = os.path.join(dir_, 'img')
-    str_utils.check_make_dir(data_dir)
-    cv.imwrite(os.path.join(data_dir, fname_ext), img)
+def imstore(dst_path, fname_ext, img):
+    str_utils.check_make_dir(dst_path)
+    ret = cv.imwrite(os.path.join(dst_path, fname_ext), img)
+    return ret
 
 
 def img2Mat(img, mshape):

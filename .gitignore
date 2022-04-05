@@ -8,6 +8,8 @@ __pycache__/
 .idea/misc.xml
 .idea/opencv_python_tutorials.iml
 
+*.avi
+
 # yolo3 dataset and weigth file
 yolo3_pytorch/VOCdevkit/VOC2007/Annotations/
 yolo3_pytorch/VOCdevkit/VOC2007/ImageSets/

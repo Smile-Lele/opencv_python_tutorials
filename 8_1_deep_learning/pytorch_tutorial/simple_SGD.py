@@ -1,6 +1,10 @@
 import torch
 import torch.optim as optim
 
+"""自动求导 autograd
+不管如何嵌套，只要你给出前向传播表达式，PyTorch都会自动提供该表达式相对于其输入参数的梯度
+"""
+
 
 def model(t_u, w, b):
     return w * t_u + b
@@ -59,6 +63,8 @@ loss = loss_fn(t_p, t_c)
 optimizer.zero_grad()  # 此调用可以在循环中更早的位置
 loss.backward()
 optimizer.step()
+
+
 # print(params)
 
 
