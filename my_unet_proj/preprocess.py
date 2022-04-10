@@ -9,7 +9,7 @@ from mypackage import icv
 import tqdm
 
 
-def imshow(src, delay=5):
+def imshow_(src, delay=5):
     cv.imshow('viz', src)
     key = cv.waitKey(delay) & 0xFF
     if key == 27:
@@ -32,6 +32,7 @@ def remove_black_bar(src):
                          [3, 0, -3]])
     kernel_y = kernel_x.T
     dy = conv(src, kernel_y)
+
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (9, 9))
     dy = cv.morphologyEx(dy, cv.MORPH_DILATE, kernel, iterations=1)
 
@@ -49,7 +50,11 @@ def remove_black_bar(src):
     offset = np.int0(src.shape[0] * 0.01)
     crop_top = np.mean(top_line).astype(np.int0) + offset if top_line else 0
     crop_bottom = np.mean(bottom_line).astype(np.int0) - offset if bottom_line else src.shape[0]
-    src = src[crop_top:crop_bottom, :]
+
+    _, src = cv.threshold(src, 128, 255, cv.THRESH_BINARY_INV)
+
+    src[:crop_top, :] = 0
+    src[crop_bottom:, :] = 0
 
     return src
 
@@ -73,15 +78,20 @@ def reshape_(src, size):
 def process(video_name):
     frames = read_video(video_name)
 
-    imgs = [reshape_(f, (512, 512)) for f in frames]
+    # frames = [remove_black_bar(img) for img in frames]
+
+    # frames = [reshape_(f, (512, 512)) for f in frames]
 
     dir, fname_ext, fname, ext = str_utils.split_dir(video_name)
-    rets = [icv.imstore(os.path.join(dir, 'dataset'), fname + '_' + str(i) + '.png', img) for i, img in enumerate(imgs)]
+    rets = [icv.imstore(os.path.join(dir, 'dataset'), fname + '_' + str(i) + '.png', img) for i, img in
+            enumerate(frames)]
     return all(rets)
 
 
 def process_with_multi(dir):
     files = str_utils.read_multifiles(dir, 'avi')
+
+    # files = list(filter(lambda f: os.path.split(f)[-1].endswith('3.avi'), files))
 
     future_list = []
     with futures.ProcessPoolExecutor(os.cpu_count() - 2) as executor:
@@ -119,5 +129,20 @@ def read_video(video_name):
     return frames
 
 
+def read_multi_images():
+    files = str_utils.read_multifiles('./data_/dataset/imgs', 'png')
+    files = list(filter(lambda f: os.path.split(f)[-1].startswith('1_'), files))
+    for f in files:
+        img = cv.imread(f, cv.IMREAD_UNCHANGED)
+
+        _, img = cv.threshold(img, 128, 255, cv.THRESH_BINARY_INV)
+
+        ret = imshow_(img, 100)
+        if ret == 'ESC':
+            print(f'KEY_EXIT')
+            break
+
+
 if __name__ == '__main__':
     process_with_multi('./data_/src_data')
+    # read_multi_images()

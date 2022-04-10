@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 
-from nets.resnet import resnet50
-from nets.vgg import VGG16
+from resnet import resnet50
+from vgg import VGG16
 
 
-class unetUp(nn.Module):
+class UnetUp(nn.Module):
     def __init__(self, in_size, out_size):
-        super(unetUp, self).__init__()
+        super(UnetUp, self).__init__()
         self.conv1  = nn.Conv2d(in_size, out_size, kernel_size = 3, padding = 1)
         self.conv2  = nn.Conv2d(out_size, out_size, kernel_size = 3, padding = 1)
         self.up     = nn.UpsamplingBilinear2d(scale_factor = 2)
@@ -36,13 +36,13 @@ class Unet(nn.Module):
 
         # upsampling
         # 64,64,512
-        self.up_concat4 = unetUp(in_filters[3], out_filters[3])
+        self.up_concat4 = UnetUp(in_filters[3], out_filters[3])
         # 128,128,256
-        self.up_concat3 = unetUp(in_filters[2], out_filters[2])
+        self.up_concat3 = UnetUp(in_filters[2], out_filters[2])
         # 256,256,128
-        self.up_concat2 = unetUp(in_filters[1], out_filters[1])
+        self.up_concat2 = UnetUp(in_filters[1], out_filters[1])
         # 512,512,64
-        self.up_concat1 = unetUp(in_filters[0], out_filters[0])
+        self.up_concat1 = UnetUp(in_filters[0], out_filters[0])
 
         if backbone == 'resnet50':
             self.up_conv = nn.Sequential(

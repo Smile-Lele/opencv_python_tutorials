@@ -1,11 +1,7 @@
 # coding: utf-8
 
-import os
-import sys
-import cv2 as cv
 import numpy as np
 import torch
-from mypackage.multiplot import multiplot as mplt
 from matplotlib import pyplot as plt
 
 
@@ -24,7 +20,7 @@ def draw():
     print(Z.shape)
     fig = plt.figure('himmelblau')
     ax = fig.gca(projection='3d')
-    ax.plot_surface(X, Y, Z, cmap='turbo')
+    ax.plot_surface(X, Y, Z, cmap='Accent')
     ax.view_init(60, -30)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -36,7 +32,7 @@ if __name__ == '__main__':
     x = torch.rand(1, 2)
     print(x)
     epsilon = 6
-    x = torch.multiply(x, 2* epsilon) - epsilon
+    x = torch.multiply(x, 2 * epsilon) - epsilon
     x.requires_grad_()
     # torch.nn.init.kaiming_uniform_(x)
     print(x)
@@ -57,6 +53,3 @@ if __name__ == '__main__':
             scheduler.step(pred.item())
             if pred.item() == 0:
                 break
-
-
-
