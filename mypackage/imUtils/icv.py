@@ -37,21 +37,31 @@ def imstore(dst_path, fname_ext, img):
 
 def img2Mat(img, mshape):
     """
-    The function will convert image to matrix, each region of which is
-    from the average of grayscale in the whole region.
-    :param img: image should be a single channel matrix
+    The function will convert image to matrix based on each channel.
+    :param img: ndarray
     :param mshape: it is a tuple (row, col)
     :return: matrix(row, col)
     """
 
-    cvtBGR2Gray(img)
+    rows, cols = mshape
+    shape = mshape
 
-    mrows, mcols = mshape
-    ceils = [np.array_split(row, mcols, axis=1) for row in np.array_split(img, mrows, axis=0)]
-    means = [np.mean(ceil) for row_img in ceils for ceil in row_img]
-    mat = np.array(means).reshape(mshape)
+    if img.ndim > 2:
+        _, _, ch = img.shape
+        shape = (rows, cols, ch)
 
-    # print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
+    ceils = [np.array_split(row, cols, axis=1) for row in np.array_split(img, rows, axis=0)]
+    means = [np.mean(ceil, axis=(0, 1)) for row_img in ceils for ceil in row_img]
+    mat = np.asarray(means).astype(np.float32).reshape(shape)
+
+    print(f'src:({img.shape},{img.dtype}) -> mat:({mat.shape},{mat.dtype})')
+    return mat
+
+
+def imgs2Mat(images: list, mshape):
+    grays = [cvtBGR2Gray(image) for image in images]
+    nd_tensor = np.dstack(grays) if len(grays) > 1 else grays
+    mat = img2Mat(nd_tensor, mshape)
     return mat
 
 
@@ -141,25 +151,6 @@ def meanFilterOnGray(imgs):
     src = [cvtBGR2Gray(img) for img in imgs]
     dst = np.mean(np.dstack(src), axis=2)
     return cv.convertScaleAbs(dst)
-
-
-def imgs2Mats_helper(img, mshape, index):
-    return [index, img2Mat(img, mshape)]
-
-
-def imgs2Mats(imgs, mshape):
-    to_do_list = list()
-    with futures.ThreadPoolExecutor(max_workers=len(imgs)) as executor:
-        for idx, img in enumerate(imgs):
-            future = executor.submit(imgs2Mats_helper, img, mshape, idx)
-            to_do_list.append(future)
-        done_iter = futures.as_completed(to_do_list)
-
-        res = [future.result() for future in done_iter]
-        sort_res = sorted(res, key=lambda r: r[0])
-        mats = [res[1] for res in sort_res]
-
-    return mats
 
 
 """
@@ -527,6 +518,7 @@ def remove_anomaly_ransac(imgs, sigma):
 """
 ROI operator
 """
+
 
 class ROI:
     def __init__(self):

@@ -20,7 +20,7 @@ class Test(TestCase):
         self.assertTrue(isColor(self.color))
 
     def test_img2mat(self):
-        realValue = img2Mat(self.color, self.mshape)
+        realValue = img2Mat(self.gray, self.mshape)
         expectedValue = self.mat
         # self.assertTrue((realValue == expectedValue).all())
         np.testing.assert_allclose(realValue, expectedValue)
