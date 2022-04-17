@@ -409,7 +409,8 @@ def polyfit(pnts, degrees=1):
     return K
 
 
-def polyfunc(X, K):
+def polyfunc(x, K):
+    X = convertPloyMatrix(x, len(list(K.flat)))
     return X @ K
 
 
