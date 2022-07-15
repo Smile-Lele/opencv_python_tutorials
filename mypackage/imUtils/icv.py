@@ -410,8 +410,9 @@ def polyfit(pnts, degrees=1):
 
 
 def polyfunc(x, K):
-    X = convertPloyMatrix(x, len(list(K.flat)))
-    return X @ K
+    X = convertPloyMatrix(x, len(list(K.flat)) - 1)
+    Y = X @ K
+    return Y
 
 
 def solveHelper(coeffs, func) -> list:
@@ -774,7 +775,7 @@ def draw_gradient(dsize, gap: int):
     return grad_h, grad_v
 
 
-def draw_calibboard(dsize, mshape):
+def draw_calibboard_pnts(dsize, mshape):
     r, c = mshape
     row, col = dsize
     r_gap = row // (r - 1)
@@ -789,6 +790,27 @@ def draw_calibboard(dsize, mshape):
     pnts = np.stack([x, y], axis=2).reshape(-1, 2)
 
     return pnts
+
+
+def draw_circleGrid(dsize, mshape):
+    r, c = mshape
+    row, col = dsize
+    r_gap = row // (r - 1)
+    c_gap = col // (c - 1)
+    y, x = np.mgrid[0:row + 1:r_gap, 0:col + 1:c_gap].astype(np.float32)
+    x[:, 0] = x[:, 0] + 20
+    x[:, -1] = x[:, -1] - 20
+
+    y[0, :] = y[0, :] + 20
+    y[-1, :] = y[-1, :] - 20
+
+    pnts = np.stack([x, y], axis=2).reshape(-1, 2)
+
+    canvas = create_whiteboard(dsize)
+    for p in pnts:
+        canvas = cv.circle(canvas, (int(p[0]), int(p[1])), 10, 0, -1, cv.LINE_AA)
+
+    return canvas
 
 
 def gen_pixel_coords(dsize):

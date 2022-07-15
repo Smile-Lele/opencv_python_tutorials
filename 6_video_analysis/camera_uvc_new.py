@@ -88,6 +88,7 @@ if __name__ == '__main__':
     while cam.isOpened():
         frame = cam.read()
         # cam.record('test.mp4')
+        frame = cv.rectangle(frame, (50, 50), (1280-50, 720-50), (0, 0, 255), 3, cv.LINE_AA)
         cv.imshow('frame', frame)
         k = cv.waitKey(5)
         if k == 27:

@@ -1,5 +1,5 @@
 import cv2 as cv
-from mypackage import icv
+from mypackage.imUtils import icv
 from matplotlib import pyplot as plt
 import numpy as np
 
