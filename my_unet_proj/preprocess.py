@@ -4,8 +4,8 @@ import cv2 as cv
 import numpy as np
 from concurrent import futures
 
-from mypackage import str_utils
-from mypackage import icv
+from mypackage.strUtils import str_utils
+from mypackage.imUtils import icv
 import tqdm
 
 
@@ -56,6 +56,8 @@ def remove_black_bar(src):
     src[:crop_top, :] = 0
     src[crop_bottom:, :] = 0
 
+    src[src > 0] = 1
+
     return src
 
 
@@ -80,7 +82,7 @@ def process(video_name):
 
     # frames = [remove_black_bar(img) for img in frames]
 
-    # frames = [reshape_(f, (512, 512)) for f in frames]
+    frames = [reshape_(f, (512, 512)) for f in frames]
 
     dir, fname_ext, fname, ext = str_utils.split_dir(video_name)
     rets = [icv.imstore(os.path.join(dir, 'dataset'), fname + '_' + str(i) + '.png', img) for i, img in

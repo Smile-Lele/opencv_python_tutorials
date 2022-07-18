@@ -7,6 +7,9 @@ __pycache__/
 .DS_Store
 .idea/misc.xml
 .idea/opencv_python_tutorials.iml
+my_unet_proj/data_/dataset/labels/*
+my_unet_proj/data_/dataset/imgs/*
+8_1_deep_learning/pytorch_proj/CIFAR10/*
 
 *.avi
 

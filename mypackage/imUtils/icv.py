@@ -397,7 +397,7 @@ def polyfit(pnts, degrees=1):
     assert m > n, f'{m=} should be greater than {n=}'
 
     # prepare dataset
-    pnts = np.asarray(pnts).reshape(-1, 2)
+    pnts = np.asarray(pnts, dtype=np.float).reshape(-1, 2)
     x = pnts[:, 0]
     y = pnts[:, 1]
     X = convertPloyMatrix(x, degrees)
@@ -412,7 +412,11 @@ def polyfit(pnts, degrees=1):
 def polyfunc(x, K):
     X = convertPloyMatrix(x, len(list(K.flat)) - 1)
     Y = X @ K
+<<<<<<< HEAD
     return Y
+=======
+    return Y[0]
+>>>>>>> 3c2b0cc7 (add polyfit test code)
 
 
 def solveHelper(coeffs, func) -> list:
