@@ -412,11 +412,7 @@ def polyfit(pnts, degrees=1):
 def polyfunc(x, K):
     X = convertPloyMatrix(x, len(list(K.flat)) - 1)
     Y = X @ K
-<<<<<<< HEAD
     return Y
-=======
-    return Y[0]
->>>>>>> 3c2b0cc7 (add polyfit test code)
 
 
 def solveHelper(coeffs, func) -> list:
